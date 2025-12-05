@@ -18,7 +18,7 @@ return new class extends Migration
             $table->string('image_path')->nullable(); // Image for the planning
             $table->boolean('is_published')->default(false);
             $table->timestamps();
-            
+
             // One planning per semester
             $table->unique('semester_id');
         });
