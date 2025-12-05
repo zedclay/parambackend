@@ -15,6 +15,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('semester_id')->constrained('semesters')->onDelete('cascade');
             $table->string('academic_year'); // e.g., "2024-2025"
+            $table->string('image_path')->nullable(); // Image for the planning
             $table->boolean('is_published')->default(false);
             $table->timestamps();
             
