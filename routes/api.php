@@ -20,6 +20,12 @@ use App\Http\Controllers\Api\Admin\AdminNotesController;
 use App\Http\Controllers\Api\Admin\AdminProfileController;
 use App\Http\Controllers\Api\Admin\AdminSpecialitiesController;
 use App\Http\Controllers\Api\Admin\AdminStudentsController;
+use App\Http\Controllers\Api\Admin\AdminYearsController;
+use App\Http\Controllers\Api\Admin\AdminSemestersController;
+use App\Http\Controllers\Api\Admin\AdminGroupsController;
+use App\Http\Controllers\Api\Admin\AdminPlanningsController;
+use App\Http\Controllers\Api\Admin\AdminPlanningItemsController;
+use App\Http\Controllers\Api\Student\StudentScheduleController;
 use App\Http\Middleware\EnsureUserIsAdmin;
 use App\Http\Middleware\EnsureUserIsStudent;
 use Illuminate\Support\Facades\Route;
@@ -51,6 +57,7 @@ Route::prefix('public')->group(function () {
 Route::prefix('student')->middleware(['auth:sanctum', EnsureUserIsStudent::class])->group(function () {
     Route::get('/dashboard', [StudentDashboardController::class, 'index']);
     Route::get('/modules', [StudentDashboardController::class, 'modules']);
+    Route::get('/schedule', [StudentScheduleController::class, 'index']);
     Route::get('/notes', [StudentNotesController::class, 'index']);
     Route::get('/notes/{id}', [StudentNotesController::class, 'show']);
     Route::get('/notes/{id}/preview', [StudentNotesController::class, 'preview']);
@@ -96,6 +103,43 @@ Route::prefix('admin')->middleware(['auth:sanctum', EnsureUserIsAdmin::class])->
     Route::post('/modules', [AdminModulesController::class, 'store']);
     Route::put('/modules/{id}', [AdminModulesController::class, 'update']);
     Route::delete('/modules/{id}', [AdminModulesController::class, 'destroy']);
+
+    // Academic Structure Management - Years
+    Route::get('/years', [AdminYearsController::class, 'index']);
+    Route::post('/years', [AdminYearsController::class, 'store']);
+    Route::get('/years/{id}', [AdminYearsController::class, 'show']);
+    Route::put('/years/{id}', [AdminYearsController::class, 'update']);
+    Route::delete('/years/{id}', [AdminYearsController::class, 'destroy']);
+
+    // Academic Structure Management - Semesters
+    Route::get('/semesters', [AdminSemestersController::class, 'index']);
+    Route::post('/semesters', [AdminSemestersController::class, 'store']);
+    Route::get('/semesters/{id}', [AdminSemestersController::class, 'show']);
+    Route::put('/semesters/{id}', [AdminSemestersController::class, 'update']);
+    Route::delete('/semesters/{id}', [AdminSemestersController::class, 'destroy']);
+
+    // Academic Structure Management - Groups
+    Route::get('/groups', [AdminGroupsController::class, 'index']);
+    Route::post('/groups', [AdminGroupsController::class, 'store']);
+    Route::get('/groups/{id}', [AdminGroupsController::class, 'show']);
+    Route::put('/groups/{id}', [AdminGroupsController::class, 'update']);
+    Route::delete('/groups/{id}', [AdminGroupsController::class, 'destroy']);
+
+    // Planning Management
+    Route::get('/plannings', [AdminPlanningsController::class, 'index']);
+    Route::post('/plannings', [AdminPlanningsController::class, 'store']);
+    Route::get('/plannings/{id}', [AdminPlanningsController::class, 'show']);
+    Route::put('/plannings/{id}', [AdminPlanningsController::class, 'update']);
+    Route::delete('/plannings/{id}', [AdminPlanningsController::class, 'destroy']);
+    Route::post('/plannings/{id}/publish', [AdminPlanningsController::class, 'publish']);
+    Route::post('/plannings/{id}/unpublish', [AdminPlanningsController::class, 'unpublish']);
+
+    // Planning Items Management
+    Route::get('/plannings/{planningId}/items', [AdminPlanningItemsController::class, 'index']);
+    Route::post('/plannings/{planningId}/items', [AdminPlanningItemsController::class, 'store']);
+    Route::get('/planning-items/{id}', [AdminPlanningItemsController::class, 'show']);
+    Route::put('/planning-items/{id}', [AdminPlanningItemsController::class, 'update']);
+    Route::delete('/planning-items/{id}', [AdminPlanningItemsController::class, 'destroy']);
 
     // Content Management - Establishments
     Route::get('/establishments', [AdminEstablishmentsController::class, 'index']);

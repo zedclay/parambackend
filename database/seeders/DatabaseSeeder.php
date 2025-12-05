@@ -19,6 +19,9 @@ class DatabaseSeeder extends Seeder
             UserSeeder::class,
             FiliereSeeder::class,
             SpecialitySeeder::class,
+            YearSeeder::class,        // Creates years 1-5 for each speciality
+            SemesterSeeder::class,   // Creates S1 and S2 for each year
+            GroupSeeder::class,      // Creates groups (G1, G2, etc.) for each year
             ModuleSeeder::class,
             StudentModuleEnrollmentSeeder::class,
             NoteSeeder::class,

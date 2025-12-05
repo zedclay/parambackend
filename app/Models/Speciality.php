@@ -52,4 +52,42 @@ class Speciality extends Model
     {
         return $this->hasMany(Note::class, 'specialite_id');
     }
+
+    /**
+     * Get the years for this speciality.
+     */
+    public function years(): HasMany
+    {
+        return $this->hasMany(Year::class, 'speciality_id');
+    }
+
+    /**
+     * Get the groups for this speciality.
+     */
+    public function groups(): HasMany
+    {
+        return $this->hasMany(Group::class, 'speciality_id');
+    }
+
+    /**
+     * Get the students in this speciality.
+     */
+    public function students(): HasMany
+    {
+        return $this->hasMany(User::class, 'speciality_id')->where('role', 'student');
+    }
+
+    /**
+     * Get the duration in years (3 or 5).
+     */
+    public function getDurationInYears(): ?int
+    {
+        if (!$this->duration) {
+            return null;
+        }
+        
+        // Extract number from duration string (e.g., "3 years" -> 3)
+        preg_match('/(\d+)/', $this->duration, $matches);
+        return isset($matches[1]) ? (int) $matches[1] : null;
+    }
 }

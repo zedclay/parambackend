@@ -42,7 +42,7 @@ class AuthController extends Controller
                 'success' => false,
                 'error' => [
                     'code' => 'INVALID_CREDENTIALS',
-                    'message' => 'Invalid email or password.',
+                    'message' => __('messages.login_failed'),
                 ],
             ], 401);
         }
@@ -52,7 +52,7 @@ class AuthController extends Controller
                 'success' => false,
                 'error' => [
                     'code' => 'ACCOUNT_INACTIVE',
-                    'message' => 'Your account has been deactivated.',
+                    'message' => __('messages.account_inactive'),
                 ],
             ], 403);
         }
@@ -72,7 +72,7 @@ class AuthController extends Controller
                 ],
                 'token' => $token,
             ],
-            'message' => 'Login successful.',
+            'message' => __('messages.login_success'),
         ]);
     }
 

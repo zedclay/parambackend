@@ -26,6 +26,11 @@ class User extends Authenticatable
         'locale',
         'must_change_password',
         'is_active',
+        'year_id',
+        'filiere_id',
+        'speciality_id',
+        'group_id',
+        'student_number',
     ];
 
     /**
@@ -83,5 +88,37 @@ class User extends Authenticatable
     public function downloadLogs()
     {
         return $this->hasMany(DownloadLog::class, 'student_id');
+    }
+
+    /**
+     * Get the year the student belongs to.
+     */
+    public function year()
+    {
+        return $this->belongsTo(Year::class, 'year_id');
+    }
+
+    /**
+     * Get the filière the student belongs to.
+     */
+    public function filiere()
+    {
+        return $this->belongsTo(Filiere::class, 'filiere_id');
+    }
+
+    /**
+     * Get the speciality the student belongs to.
+     */
+    public function speciality()
+    {
+        return $this->belongsTo(Speciality::class, 'speciality_id');
+    }
+
+    /**
+     * Get the group the student belongs to.
+     */
+    public function group()
+    {
+        return $this->belongsTo(Group::class, 'group_id');
     }
 }

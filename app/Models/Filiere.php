@@ -34,4 +34,12 @@ class Filiere extends Model
     {
         return $this->specialities()->where('is_active', true);
     }
+
+    /**
+     * Get the students in this filière.
+     */
+    public function students(): HasMany
+    {
+        return $this->hasMany(User::class, 'filiere_id')->where('role', 'student');
+    }
 }

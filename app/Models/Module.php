@@ -45,4 +45,33 @@ class Module extends Model
     {
         return $this->hasMany(Note::class, 'module_id');
     }
+
+    /**
+     * Get the years this module is assigned to.
+     */
+    public function years(): BelongsToMany
+    {
+        return $this->belongsToMany(Year::class, 'module_year_assignments', 'module_id', 'year_id')
+            ->withPivot('semester_number', 'is_mandatory')
+            ->withTimestamps();
+    }
+
+    /**
+     * Get the planning items for this module.
+     */
+    public function planningItems(): HasMany
+    {
+        return $this->hasMany(PlanningItem::class, 'module_id');
+    }
+
+    /**
+     * Check if module is assigned to a specific year and semester.
+     */
+    public function isAssignedToYearAndSemester(int $yearId, int $semesterNumber): bool
+    {
+        return $this->years()
+            ->where('year_id', $yearId)
+            ->wherePivot('semester_number', $semesterNumber)
+            ->exists();
+    }
 }
