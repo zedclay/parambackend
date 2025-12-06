@@ -71,8 +71,15 @@ class AdminPlanningsController extends Controller
 
     public function update(Request $request, $id)
     {
+        \Log::info('Planning update method called', [
+            'planning_id' => $id,
+            'has_file' => $request->hasFile('image'),
+            'all_input_keys' => array_keys($request->all()),
+            'request_method' => $request->method(),
+        ]);
+        
         $planning = Planning::findOrFail($id);
-
+        
         $validator = Validator::make($request->all(), [
             'academic_year' => 'sometimes|string',
             'is_published' => 'sometimes|boolean',
