@@ -13,14 +13,33 @@ use Illuminate\Support\Facades\Auth;
 class StudentScheduleController extends Controller
 {
     /**
-     * Get available specialties for schedule selection
+     * Get available filieres for schedule selection
+     */
+    public function getFilieres(Request $request)
+    {
+        $filieres = \App\Models\Filiere::where('is_active', true)
+            ->orderBy('order')
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => $filieres,
+        ]);
+    }
+
+    /**
+     * Get available specialties for schedule selection (optionally filtered by filiere)
      */
     public function getSpecialities(Request $request)
     {
-        $specialities = Speciality::where('is_active', true)
-            ->with('filiere')
-            ->orderBy('order')
-            ->get();
+        $query = Speciality::where('is_active', true)
+            ->with('filiere');
+
+        if ($request->has('filiere_id')) {
+            $query->where('filiere_id', $request->filiere_id);
+        }
+
+        $specialities = $query->orderBy('order')->get();
 
         return response()->json([
             'success' => true,
@@ -100,9 +119,14 @@ class StudentScheduleController extends Controller
             ->with(['year.speciality'])
             ->firstOrFail();
 
-        // Get planning for the semester
+        // Get planning for the semester (only published ones)
         $planning = Planning::where('semester_id', $semesterId)
             ->where('is_published', true)
+            ->first();
+
+        // Debug: Check if there's an unpublished planning
+        $unpublishedPlanning = Planning::where('semester_id', $semesterId)
+            ->where('is_published', false)
             ->first();
 
         if (!$planning) {
@@ -112,6 +136,7 @@ class StudentScheduleController extends Controller
                     'items' => [],
                     'semester' => $semester,
                     'planning' => null,
+                    'has_unpublished' => $unpublishedPlanning !== null,
                 ]
             ]);
         }
