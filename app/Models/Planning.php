@@ -11,7 +11,6 @@ class Planning extends Model
     protected $fillable = [
         'semester_id',
         'academic_year',
-        'image_path',
         'is_published',
     ];
 
@@ -63,23 +62,12 @@ class Planning extends Model
     }
 
     /**
-     * Get the full URL to the planning image.
+     * Get the schedule image for this planning's semester (if exists).
      */
-    public function getImageUrlAttribute(): ?string
+    public function scheduleImage()
     {
-        if (!$this->image_path) {
-            return null;
-        }
-
-        return asset('storage/' . $this->image_path);
-    }
-
-    /**
-     * Check if planning has an image.
-     */
-    public function hasImage(): bool
-    {
-        return !empty($this->image_path);
+        return $this->hasOne(\App\Models\ScheduleImage::class, 'semester_id', 'semester_id')
+            ->where('is_active', true);
     }
 }
 

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Student;
 
 use App\Http\Controllers\Controller;
 use App\Models\Planning;
+use App\Models\ScheduleImage;
 use App\Models\Semester;
 use App\Models\Year;
 use App\Models\Speciality;
@@ -119,34 +120,25 @@ class StudentScheduleController extends Controller
             ->with(['year.speciality'])
             ->firstOrFail();
 
-        // Get planning for the semester (only published ones)
+        // Get planning for the semester (only published ones) - for detailed items
         $planning = Planning::where('semester_id', $semesterId)
             ->where('is_published', true)
             ->first();
 
-        // Debug: Check if there's an unpublished planning
-        $unpublishedPlanning = Planning::where('semester_id', $semesterId)
-            ->where('is_published', false)
+        // Get schedule image for the semester (NEW ARCHITECTURE)
+        $scheduleImage = ScheduleImage::where('semester_id', $semesterId)
+            ->where('is_active', true)
             ->first();
 
-        if (!$planning) {
-            return response()->json([
-                'success' => true,
-                'data' => [
-                    'items' => [],
-                    'semester' => $semester,
-                    'planning' => null,
-                    'has_unpublished' => $unpublishedPlanning !== null,
-                ]
-            ]);
+        // Get all items for the planning (if planning exists)
+        $items = [];
+        if ($planning) {
+            $items = $planning->items()
+                ->with(['module', 'group'])
+                ->orderBy('day_of_week')
+                ->orderBy('start_time')
+                ->get();
         }
-
-        // Get all items for the planning (no group filter - show all)
-        $items = $planning->items()
-            ->with(['module', 'group'])
-            ->orderBy('day_of_week')
-            ->orderBy('start_time')
-            ->get();
 
         return response()->json([
             'success' => true,
@@ -154,6 +146,12 @@ class StudentScheduleController extends Controller
                 'items' => $items,
                 'semester' => $semester,
                 'planning' => $planning,
+                'schedule_image' => $scheduleImage ? [
+                    'id' => $scheduleImage->id,
+                    'image_path' => $scheduleImage->image_path,
+                    'image_url' => $scheduleImage->image_url,
+                    'original_filename' => $scheduleImage->original_filename,
+                ] : null,
             ]
         ]);
     }

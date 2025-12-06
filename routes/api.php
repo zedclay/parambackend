@@ -25,6 +25,7 @@ use App\Http\Controllers\Api\Admin\AdminSemestersController;
 use App\Http\Controllers\Api\Admin\AdminGroupsController;
 use App\Http\Controllers\Api\Admin\AdminPlanningsController;
 use App\Http\Controllers\Api\Admin\AdminPlanningItemsController;
+use App\Http\Controllers\Api\Admin\AdminScheduleImagesController;
 use App\Http\Controllers\Api\Student\StudentScheduleController;
 use App\Http\Middleware\EnsureUserIsAdmin;
 use App\Http\Middleware\EnsureUserIsStudent;
@@ -144,6 +145,11 @@ Route::prefix('admin')->middleware(['auth:sanctum', EnsureUserIsAdmin::class])->
     Route::get('/planning-items/{id}', [AdminPlanningItemsController::class, 'show']);
     Route::put('/planning-items/{id}', [AdminPlanningItemsController::class, 'update']);
     Route::delete('/planning-items/{id}', [AdminPlanningItemsController::class, 'destroy']);
+
+    // Schedule Images Management (NEW - Separate from Planning)
+    Route::get('/schedule-images/{semesterId}', [AdminScheduleImagesController::class, 'show']);
+    Route::post('/schedule-images/{semesterId}', [AdminScheduleImagesController::class, 'store']);
+    Route::delete('/schedule-images/{semesterId}', [AdminScheduleImagesController::class, 'destroy']);
 
     // Content Management - Establishments
     Route::get('/establishments', [AdminEstablishmentsController::class, 'index']);
