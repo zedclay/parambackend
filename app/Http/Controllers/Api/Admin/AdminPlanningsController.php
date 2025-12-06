@@ -71,13 +71,20 @@ class AdminPlanningsController extends Controller
 
     public function update(Request $request, $id)
     {
+        // Use error_log for immediate visibility
+        error_log('=== PLANNING UPDATE CALLED ===');
+        error_log('Planning ID: ' . $id);
+        error_log('Has File: ' . ($request->hasFile('image') ? 'YES' : 'NO'));
+        error_log('Request Method: ' . $request->method());
+        error_log('All Keys: ' . implode(', ', array_keys($request->all())));
+        
         \Log::info('Planning update method called', [
             'planning_id' => $id,
             'has_file' => $request->hasFile('image'),
             'all_input_keys' => array_keys($request->all()),
             'request_method' => $request->method(),
         ]);
-
+        
         $planning = Planning::findOrFail($id);
 
         $validator = Validator::make($request->all(), [
@@ -126,9 +133,14 @@ class AdminPlanningsController extends Controller
                     'exists' => Storage::disk('public')->exists($imagePath)
                 ]);
 
+                error_log('Image Path Result: ' . ($imagePath ?: 'NULL'));
+                error_log('File Exists: ' . (Storage::disk('public')->exists($imagePath) ? 'YES' : 'NO'));
+                
                 if ($imagePath && Storage::disk('public')->exists($imagePath)) {
                     $updateData['image_path'] = $imagePath;
+                    error_log('✅ Image path added to updateData: ' . $imagePath);
                 } else {
+                    error_log('❌ Image upload failed - file not stored or path is null');
                     \Log::error('Image upload failed - file not stored', [
                         'image_path' => $imagePath,
                         'exists' => $imagePath ? Storage::disk('public')->exists($imagePath) : false
@@ -164,8 +176,11 @@ class AdminPlanningsController extends Controller
         }
 
         // Update the planning
+        error_log('=== UPDATING PLANNING ===');
+        error_log('Update Data: ' . json_encode($updateData));
         $planning->update($updateData);
-
+        error_log('Update completed');
+        
         // Log the update for debugging
         \Log::info('Planning update:', [
             'planning_id' => $planning->id,
@@ -210,6 +225,10 @@ class AdminPlanningsController extends Controller
             'planning_id' => $planning->id,
             'image_path' => $responseData['image_path']
         ]);
+
+        error_log('=== RETURNING RESPONSE ===');
+        error_log('Response image_path: ' . ($responseData['image_path'] ?? 'NULL'));
+        error_log('Full response data keys: ' . implode(', ', array_keys($responseData)));
 
         return response()->json([
             'success' => true,
