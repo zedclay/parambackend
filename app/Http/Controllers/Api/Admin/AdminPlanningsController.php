@@ -201,11 +201,24 @@ class AdminPlanningsController extends Controller
 
         // Save explicitly to ensure image_path is persisted
         $saved = $planning->save();
-
+        
+        // If image_path is in updateData, force update directly in database as backup
+        if (isset($updateData['image_path']) && !empty($updateData['image_path'])) {
+            $directUpdate = DB::table('plannings')
+                ->where('id', $planning->id)
+                ->update(['image_path' => $updateData['image_path']]);
+            
+            Log::info('Direct DB update for image_path', [
+                'planning_id' => $planning->id,
+                'direct_update_result' => $directUpdate,
+                'image_path' => $updateData['image_path'],
+            ]);
+        }
+        
         // Verify the save worked by checking database directly
         $planning->refresh();
         $dbImagePath = DB::table('plannings')->where('id', $planning->id)->value('image_path');
-
+        
         Log::info('Planning saved', [
             'planning_id' => $planning->id,
             'saved' => $saved,
@@ -213,10 +226,10 @@ class AdminPlanningsController extends Controller
             'image_path_in_db' => $dbImagePath,
             'match' => $planning->image_path === $dbImagePath,
         ]);
-
+        
         // If image_path is still null after save, something is wrong
-        if (isset($updateData['image_path']) && empty($planning->image_path)) {
-            Log::error('CRITICAL: image_path is empty after save!', [
+        if (isset($updateData['image_path']) && empty($planning->image_path) && empty($dbImagePath)) {
+            Log::error('CRITICAL: image_path is empty after save and direct DB update!', [
                 'planning_id' => $planning->id,
                 'expected_image_path' => $updateData['image_path'],
                 'actual_image_path' => $planning->image_path,
@@ -257,13 +270,20 @@ class AdminPlanningsController extends Controller
         ];
 
         // Final verification: ensure image_path is in response
+        // Use the value from database as source of truth
+        $finalImagePath = $dbImagePath ?? $planning->image_path ?? ($updateData['image_path'] ?? null);
+        
         if (isset($updateData['image_path']) && empty($responseData['image_path'])) {
             // Force it from database if missing
-            $responseData['image_path'] = $dbImagePath ?? $planning->image_path ?? $updateData['image_path'];
+            $responseData['image_path'] = $finalImagePath;
             Log::warning('image_path was missing from response, forcing it', [
                 'planning_id' => $planning->id,
                 'forced_image_path' => $responseData['image_path'],
+                'source' => $dbImagePath ? 'database' : ($planning->image_path ? 'model' : 'updateData'),
             ]);
+        } else {
+            // Always use database value as source of truth
+            $responseData['image_path'] = $finalImagePath;
         }
 
         Log::info('Planning update response:', [
