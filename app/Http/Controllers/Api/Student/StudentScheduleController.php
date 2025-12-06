@@ -13,7 +13,7 @@ class StudentScheduleController extends Controller
     public function index(Request $request)
     {
         $user = Auth::user();
-        
+
         if (!$user->year_id || !$user->group_id) {
             return response()->json([
                 'success' => false,
@@ -25,21 +25,21 @@ class StudentScheduleController extends Controller
         }
 
         $semesterId = $request->get('semester_id');
-        
+
         // If no semester specified, get current semester
         if (!$semesterId) {
             $currentSemester = Semester::where('year_id', $user->year_id)
                 ->where('start_date', '<=', now())
                 ->where('end_date', '>=', now())
                 ->first();
-            
+
             if (!$currentSemester) {
                 // Get the first available semester
                 $currentSemester = Semester::where('year_id', $user->year_id)
                     ->orderBy('semester_number')
                     ->first();
             }
-            
+
             $semesterId = $currentSemester?->id;
         }
 
@@ -87,6 +87,34 @@ class StudentScheduleController extends Controller
                 'semester' => $semester,
                 'planning' => $planning,
             ]
+        ]);
+    }
+
+    /**
+     * Get available semesters for the student's year
+     */
+    public function semesters(Request $request)
+    {
+        $user = Auth::user();
+
+        if (!$user->year_id) {
+            return response()->json([
+                'success' => false,
+                'error' => [
+                    'code' => 'MISSING_INFO',
+                    'message' => 'Student must be assigned to a year'
+                ]
+            ], 400);
+        }
+
+        $semesters = Semester::where('year_id', $user->year_id)
+            ->where('is_active', true)
+            ->orderBy('semester_number')
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => $semesters
         ]);
     }
 }
