@@ -180,7 +180,7 @@ class AdminPlanningsController extends Controller
             'has_image_path' => isset($updateData['image_path']),
             'image_path_before_save' => $planning->image_path,
         ]);
-        
+
         // Update other fields if present (except image_path which is already set on model)
         if (!empty($updateData)) {
             foreach ($updateData as $key => $value) {
@@ -189,7 +189,7 @@ class AdminPlanningsController extends Controller
                 }
             }
         }
-        
+
         // Double-check image_path is set before save
         if (isset($updateData['image_path']) && $planning->image_path !== $updateData['image_path']) {
             $planning->image_path = $updateData['image_path'];
@@ -198,14 +198,14 @@ class AdminPlanningsController extends Controller
                 'actual' => $planning->image_path,
             ]);
         }
-        
+
         // Save explicitly to ensure image_path is persisted
         $saved = $planning->save();
-        
+
         // Verify the save worked by checking database directly
         $planning->refresh();
         $dbImagePath = DB::table('plannings')->where('id', $planning->id)->value('image_path');
-        
+
         Log::info('Planning saved', [
             'planning_id' => $planning->id,
             'saved' => $saved,
@@ -213,7 +213,7 @@ class AdminPlanningsController extends Controller
             'image_path_in_db' => $dbImagePath,
             'match' => $planning->image_path === $dbImagePath,
         ]);
-        
+
         // If image_path is still null after save, something is wrong
         if (isset($updateData['image_path']) && empty($planning->image_path)) {
             Log::error('CRITICAL: image_path is empty after save!', [
