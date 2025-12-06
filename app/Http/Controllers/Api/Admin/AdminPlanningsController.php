@@ -273,21 +273,37 @@ class AdminPlanningsController extends Controller
         ];
 
         // Final verification: ensure image_path is ALWAYS in response
-        // Use the value from database as source of truth (most reliable)
-        $finalImagePath = $dbImagePath ?? $planning->image_path ?? ($updateData['image_path'] ?? null);
+        // Priority: 1. DB value (most reliable), 2. updateData (what we just set), 3. model value, 4. null
+        $finalImagePath = null;
         
-        // ALWAYS set image_path in response, even if null
+        if (!empty($dbImagePath)) {
+            $finalImagePath = $dbImagePath;
+            Log::info('Using DB value for image_path', ['value' => $finalImagePath]);
+        } elseif (isset($updateData['image_path']) && !empty($updateData['image_path'])) {
+            $finalImagePath = $updateData['image_path'];
+            Log::info('Using updateData value for image_path', ['value' => $finalImagePath]);
+        } elseif (!empty($planning->image_path)) {
+            $finalImagePath = $planning->image_path;
+            Log::info('Using model value for image_path', ['value' => $finalImagePath]);
+        } else {
+            Log::warning('image_path is null/empty in all sources', [
+                'db_value' => $dbImagePath,
+                'update_data_value' => $updateData['image_path'] ?? 'not set',
+                'model_value' => $planning->image_path,
+            ]);
+        }
+        
+        // ALWAYS set image_path in response, even if null (so frontend knows it was processed)
         $responseData['image_path'] = $finalImagePath;
         
-        // Log if we had to force it
-        if (isset($updateData['image_path']) && $responseData['image_path'] !== $finalImagePath) {
-            Log::warning('image_path was different, using database value', [
+        // If we uploaded an image but finalImagePath is still null, that's a critical error
+        if (isset($updateData['image_path']) && !empty($updateData['image_path']) && empty($finalImagePath)) {
+            Log::error('CRITICAL: Image was uploaded but image_path is null in response!', [
                 'planning_id' => $planning->id,
-                'original_response' => $responseData['image_path'],
-                'final_image_path' => $finalImagePath,
-                'source' => $dbImagePath ? 'database' : ($planning->image_path ? 'model' : 'updateData'),
+                'uploaded_path' => $updateData['image_path'],
+                'db_value' => $dbImagePath,
+                'model_value' => $planning->image_path,
             ]);
-            $responseData['image_path'] = $finalImagePath;
         }
 
         // Final check: Log the exact response that will be sent
