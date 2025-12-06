@@ -202,8 +202,16 @@ class AdminPlanningsController extends Controller
         // Save explicitly to ensure image_path is persisted
         $saved = $planning->save();
         
+        Log::info('After first save attempt', [
+            'planning_id' => $planning->id,
+            'saved' => $saved,
+            'image_path_on_model' => $planning->image_path,
+            'image_path_in_updateData' => $updateData['image_path'] ?? 'not set',
+        ]);
+        
         // If image_path is in updateData, force update directly in database as backup
         if (isset($updateData['image_path']) && !empty($updateData['image_path'])) {
+            // Try direct DB update
             $directUpdate = DB::table('plannings')
                 ->where('id', $planning->id)
                 ->update(['image_path' => $updateData['image_path']]);
@@ -211,13 +219,37 @@ class AdminPlanningsController extends Controller
             Log::info('Direct DB update for image_path', [
                 'planning_id' => $planning->id,
                 'direct_update_result' => $directUpdate,
+                'rows_affected' => $directUpdate,
                 'image_path' => $updateData['image_path'],
             ]);
+            
+            // If direct update failed, try again with fresh query
+            if ($directUpdate === 0) {
+                Log::warning('Direct DB update returned 0 rows, trying alternative method');
+                // Try using raw query
+                DB::statement("UPDATE plannings SET image_path = ? WHERE id = ?", [
+                    $updateData['image_path'],
+                    $planning->id
+                ]);
+                Log::info('Executed raw SQL update for image_path');
+            }
         }
         
         // Verify the save worked by checking database directly
         $planning->refresh();
         $dbImagePath = DB::table('plannings')->where('id', $planning->id)->value('image_path');
+        
+        // If still null, try one more time with fresh model instance
+        if (isset($updateData['image_path']) && !empty($updateData['image_path']) && empty($dbImagePath)) {
+            Log::warning('image_path still null after all attempts, trying fresh model update');
+            $freshPlanning = Planning::find($planning->id);
+            $freshPlanning->image_path = $updateData['image_path'];
+            $freshPlanning->save();
+            $dbImagePath = DB::table('plannings')->where('id', $planning->id)->value('image_path');
+            Log::info('After fresh model update', [
+                'image_path_in_db' => $dbImagePath,
+            ]);
+        }
         
         Log::info('Planning saved', [
             'planning_id' => $planning->id,
