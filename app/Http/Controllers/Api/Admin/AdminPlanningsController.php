@@ -172,12 +172,27 @@ class AdminPlanningsController extends Controller
         // Log after refresh
         \Log::info('Planning after refresh:', [
             'planning_id' => $planning->id,
-            'image_path' => $planning->image_path
+            'image_path' => $planning->image_path,
+            'image_path_raw' => $planning->getAttributes()['image_path'] ?? 'not in attributes'
         ]);
+
+        // Reload with relationships
+        $planning = $planning->load('semester.year.speciality');
+
+        // Ensure image_path is in the response (explicitly include it)
+        $responseData = $planning->toArray();
+        if (!isset($responseData['image_path'])) {
+            \Log::warning('image_path missing from toArray() response', [
+                'planning_id' => $planning->id,
+                'attributes' => $planning->getAttributes()
+            ]);
+            // Manually add it
+            $responseData['image_path'] = $planning->image_path;
+        }
 
         return response()->json([
             'success' => true,
-            'data' => $planning->load('semester.year.speciality'),
+            'data' => $responseData,
             'message' => 'Planning updated successfully.'
         ]);
     }
