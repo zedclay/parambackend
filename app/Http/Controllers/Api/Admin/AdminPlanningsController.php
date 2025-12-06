@@ -77,14 +77,14 @@ class AdminPlanningsController extends Controller
         error_log('Has File: ' . ($request->hasFile('image') ? 'YES' : 'NO'));
         error_log('Request Method: ' . $request->method());
         error_log('All Keys: ' . implode(', ', array_keys($request->all())));
-        
+
         \Log::info('Planning update method called', [
             'planning_id' => $id,
             'has_file' => $request->hasFile('image'),
             'all_input_keys' => array_keys($request->all()),
             'request_method' => $request->method(),
         ]);
-        
+
         $planning = Planning::findOrFail($id);
 
         $validator = Validator::make($request->all(), [
@@ -135,7 +135,7 @@ class AdminPlanningsController extends Controller
 
                 error_log('Image Path Result: ' . ($imagePath ?: 'NULL'));
                 error_log('File Exists: ' . (Storage::disk('public')->exists($imagePath) ? 'YES' : 'NO'));
-                
+
                 if ($imagePath && Storage::disk('public')->exists($imagePath)) {
                     $updateData['image_path'] = $imagePath;
                     error_log('✅ Image path added to updateData: ' . $imagePath);
@@ -180,7 +180,7 @@ class AdminPlanningsController extends Controller
         error_log('Update Data: ' . json_encode($updateData));
         $planning->update($updateData);
         error_log('Update completed');
-        
+
         // Log the update for debugging
         \Log::info('Planning update:', [
             'planning_id' => $planning->id,
