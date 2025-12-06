@@ -5,62 +5,102 @@ namespace App\Http\Controllers\Api\Student;
 use App\Http\Controllers\Controller;
 use App\Models\Planning;
 use App\Models\Semester;
+use App\Models\Year;
+use App\Models\Speciality;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class StudentScheduleController extends Controller
 {
+    /**
+     * Get available specialties for schedule selection
+     */
+    public function getSpecialities(Request $request)
+    {
+        $specialities = Speciality::where('is_active', true)
+            ->with('filiere')
+            ->orderBy('order')
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => $specialities,
+        ]);
+    }
+
+    /**
+     * Get available years for a specialty
+     */
+    public function getYears(Request $request, $specialityId)
+    {
+        $years = Year::where('speciality_id', $specialityId)
+            ->where('is_active', true)
+            ->orderBy('year_number')
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => $years,
+        ]);
+    }
+
+    /**
+     * Get available semesters for a year
+     */
+    public function getSemesters(Request $request, $yearId)
+    {
+        $semesters = Semester::where('year_id', $yearId)
+            ->orderBy('semester_number')
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => $semesters,
+        ]);
+    }
+
+    /**
+     * Get schedule for selected specialty, year, and semester
+     */
     public function index(Request $request)
     {
         $user = Auth::user();
 
-        if (!$user->year_id || !$user->group_id) {
-            return response()->json([
-                'success' => false,
-                'error' => [
-                    'code' => 'MISSING_INFO',
-                    'message' => 'Student must be assigned to a year and group'
-                ]
-            ], 400);
-        }
-
+        // Get parameters from request
+        $specialityId = $request->get('speciality_id');
+        $yearId = $request->get('year_id');
         $semesterId = $request->get('semester_id');
 
-        // If no semester specified, get current semester
-        if (!$semesterId) {
-            $currentSemester = Semester::where('year_id', $user->year_id)
-                ->where('start_date', '<=', now())
-                ->where('end_date', '>=', now())
-                ->first();
+        // If no parameters provided, return empty with available options
+        if (!$specialityId || !$yearId || !$semesterId) {
+            // Get all specialties for dropdown
+            $specialities = Speciality::where('is_active', true)
+                ->orderBy('order')
+                ->get();
 
-            if (!$currentSemester) {
-                // Get the first available semester
-                $currentSemester = Semester::where('year_id', $user->year_id)
-                    ->orderBy('semester_number')
-                    ->first();
-            }
-
-            $semesterId = $currentSemester?->id;
-        }
-
-        // Get all available semesters for student's year
-        $availableSemesters = Semester::where('year_id', $user->year_id)
-            ->orderBy('semester_number')
-            ->get();
-
-        if (!$semesterId) {
             return response()->json([
                 'success' => true,
                 'data' => [
                     'items' => [],
                     'semester' => null,
                     'planning' => null,
-                    'available_semesters' => $availableSemesters,
+                    'specialities' => $specialities,
                 ]
             ]);
         }
 
-        $semester = Semester::with(['year.speciality'])->findOrFail($semesterId);
+        // Validate that year belongs to specialty
+        $year = Year::where('id', $yearId)
+            ->where('speciality_id', $specialityId)
+            ->firstOrFail();
+
+        // Validate that semester belongs to year
+        $semester = Semester::where('id', $semesterId)
+            ->where('year_id', $yearId)
+            ->with(['year.speciality'])
+            ->firstOrFail();
+
+        // Get planning for the semester
         $planning = Planning::where('semester_id', $semesterId)
             ->where('is_published', true)
             ->first();
@@ -72,17 +112,12 @@ class StudentScheduleController extends Controller
                     'items' => [],
                     'semester' => $semester,
                     'planning' => null,
-                    'available_semesters' => $availableSemesters,
                 ]
             ]);
         }
 
-        // Get items for student's group or items without specific group
+        // Get all items for the planning (no group filter - show all)
         $items = $planning->items()
-            ->where(function($query) use ($user) {
-                $query->where('group_id', $user->group_id)
-                      ->orWhereNull('group_id');
-            })
             ->with(['module', 'group'])
             ->orderBy('day_of_week')
             ->orderBy('start_time')
@@ -94,9 +129,7 @@ class StudentScheduleController extends Controller
                 'items' => $items,
                 'semester' => $semester,
                 'planning' => $planning,
-                'available_semesters' => $availableSemesters,
             ]
         ]);
     }
 }
-

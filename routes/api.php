@@ -58,6 +58,9 @@ Route::prefix('student')->middleware(['auth:sanctum', EnsureUserIsStudent::class
     Route::get('/dashboard', [StudentDashboardController::class, 'index']);
     Route::get('/modules', [StudentDashboardController::class, 'modules']);
     Route::get('/schedule', [StudentScheduleController::class, 'index']);
+    Route::get('/schedule/specialities', [StudentScheduleController::class, 'getSpecialities']);
+    Route::get('/schedule/specialities/{specialityId}/years', [StudentScheduleController::class, 'getYears']);
+    Route::get('/schedule/years/{yearId}/semesters', [StudentScheduleController::class, 'getSemesters']);
     Route::get('/notes', [StudentNotesController::class, 'index']);
     Route::get('/notes/{id}', [StudentNotesController::class, 'show']);
     Route::get('/notes/{id}/preview', [StudentNotesController::class, 'preview']);
