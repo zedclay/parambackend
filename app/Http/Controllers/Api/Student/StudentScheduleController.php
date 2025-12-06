@@ -43,12 +43,19 @@ class StudentScheduleController extends Controller
             $semesterId = $currentSemester?->id;
         }
 
+        // Get all available semesters for student's year
+        $availableSemesters = Semester::where('year_id', $user->year_id)
+            ->orderBy('semester_number')
+            ->get();
+
         if (!$semesterId) {
             return response()->json([
                 'success' => true,
                 'data' => [
                     'items' => [],
                     'semester' => null,
+                    'planning' => null,
+                    'available_semesters' => $availableSemesters,
                 ]
             ]);
         }
@@ -65,6 +72,7 @@ class StudentScheduleController extends Controller
                     'items' => [],
                     'semester' => $semester,
                     'planning' => null,
+                    'available_semesters' => $availableSemesters,
                 ]
             ]);
         }
@@ -86,35 +94,8 @@ class StudentScheduleController extends Controller
                 'items' => $items,
                 'semester' => $semester,
                 'planning' => $planning,
+                'available_semesters' => $availableSemesters,
             ]
-        ]);
-    }
-
-    /**
-     * Get available semesters for the student's year
-     */
-    public function semesters(Request $request)
-    {
-        $user = Auth::user();
-
-        if (!$user->year_id) {
-            return response()->json([
-                'success' => false,
-                'error' => [
-                    'code' => 'MISSING_INFO',
-                    'message' => 'Student must be assigned to a year'
-                ]
-            ], 400);
-        }
-
-        $semesters = Semester::where('year_id', $user->year_id)
-            ->where('is_active', true)
-            ->orderBy('semester_number')
-            ->get();
-
-        return response()->json([
-            'success' => true,
-            'data' => $semesters
         ]);
     }
 }

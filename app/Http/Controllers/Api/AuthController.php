@@ -59,17 +59,45 @@ class AuthController extends Controller
 
         $token = $user->createToken('auth_token')->plainTextToken;
 
+        $userData = [
+            'id' => $user->id,
+            'name' => $user->name,
+            'email' => $user->email,
+            'role' => $user->role,
+            'locale' => $user->locale,
+            'must_change_password' => $user->must_change_password,
+        ];
+
+        // Include year and group data for students
+        if ($user->role === 'student') {
+            $userData['year_id'] = $user->year_id;
+            $userData['group_id'] = $user->group_id;
+
+            // Load year relationship with name
+            if ($user->year_id) {
+                $user->load('year');
+                $userData['year'] = $user->year ? [
+                    'id' => $user->year->id,
+                    'year_number' => $user->year->year_number,
+                    'name' => $user->year->name,
+                ] : null;
+            }
+
+            // Load group relationship
+            if ($user->group_id) {
+                $user->load('group');
+                $userData['group'] = $user->group ? [
+                    'id' => $user->group->id,
+                    'name' => $user->group->name,
+                    'code' => $user->group->code,
+                ] : null;
+            }
+        }
+
         return response()->json([
             'success' => true,
             'data' => [
-                'user' => [
-                    'id' => $user->id,
-                    'name' => $user->name,
-                    'email' => $user->email,
-                    'role' => $user->role,
-                    'locale' => $user->locale,
-                    'must_change_password' => $user->must_change_password,
-                ],
+                'user' => $userData,
                 'token' => $token,
             ],
             'message' => __('messages.login_success'),
@@ -96,16 +124,44 @@ class AuthController extends Controller
     {
         $user = $request->user();
 
+        $userData = [
+            'id' => $user->id,
+            'name' => $user->name,
+            'email' => $user->email,
+            'role' => $user->role,
+            'locale' => $user->locale,
+            'must_change_password' => $user->must_change_password,
+        ];
+
+        // Include year and group data for students
+        if ($user->role === 'student') {
+            $userData['year_id'] = $user->year_id;
+            $userData['group_id'] = $user->group_id;
+
+            // Load year relationship with name
+            if ($user->year_id) {
+                $user->load('year');
+                $userData['year'] = $user->year ? [
+                    'id' => $user->year->id,
+                    'year_number' => $user->year->year_number,
+                    'name' => $user->year->name,
+                ] : null;
+            }
+
+            // Load group relationship
+            if ($user->group_id) {
+                $user->load('group');
+                $userData['group'] = $user->group ? [
+                    'id' => $user->group->id,
+                    'name' => $user->group->name,
+                    'code' => $user->group->code,
+                ] : null;
+            }
+        }
+
         return response()->json([
             'success' => true,
-            'data' => [
-                'id' => $user->id,
-                'name' => $user->name,
-                'email' => $user->email,
-                'role' => $user->role,
-                'locale' => $user->locale,
-                'must_change_password' => $user->must_change_password,
-            ],
+            'data' => $userData,
         ]);
     }
 
