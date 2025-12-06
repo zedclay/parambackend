@@ -22,7 +22,7 @@ class EnsureUserIsAdmin
             'user_role' => $request->user()?->role,
             'is_admin' => $request->user()?->isAdmin(),
         ]);
-        
+
         if (!$request->user() || !$request->user()->isAdmin()) {
             \Log::warning('Admin access denied', [
                 'path' => $request->path(),
