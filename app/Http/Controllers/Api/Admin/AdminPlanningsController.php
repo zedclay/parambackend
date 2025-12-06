@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Planning;
 use App\Models\Semester;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Storage;
 
@@ -71,17 +72,9 @@ class AdminPlanningsController extends Controller
 
     public function update(Request $request, $id)
     {
-        // Use error_log for immediate visibility
-        error_log('=== PLANNING UPDATE CALLED ===');
-        error_log('Planning ID: ' . $id);
-        error_log('Has File: ' . ($request->hasFile('image') ? 'YES' : 'NO'));
-        error_log('Request Method: ' . $request->method());
-        error_log('All Keys: ' . implode(', ', array_keys($request->all())));
-
-        \Log::info('Planning update method called', [
+        Log::info('Planning update method called', [
             'planning_id' => $id,
             'has_file' => $request->hasFile('image'),
-            'all_input_keys' => array_keys($request->all()),
             'request_method' => $request->method(),
         ]);
 
@@ -123,7 +116,7 @@ class AdminPlanningsController extends Controller
 
                 $imagePath = $file->storeAs('plannings', $storedFilename, 'public');
 
-                \Log::info('Planning image upload:', [
+                Log::info('Planning image upload:', [
                     'planning_id' => $planning->id,
                     'original_filename' => $file->getClientOriginalName(),
                     'stored_filename' => $storedFilename,
@@ -133,15 +126,11 @@ class AdminPlanningsController extends Controller
                     'exists' => Storage::disk('public')->exists($imagePath)
                 ]);
 
-                error_log('Image Path Result: ' . ($imagePath ?: 'NULL'));
-                error_log('File Exists: ' . (Storage::disk('public')->exists($imagePath) ? 'YES' : 'NO'));
-
                 if ($imagePath && Storage::disk('public')->exists($imagePath)) {
                     $updateData['image_path'] = $imagePath;
-                    error_log('✅ Image path added to updateData: ' . $imagePath);
+                    Log::info('✅ Image path set for update', ['image_path' => $imagePath]);
                 } else {
-                    error_log('❌ Image upload failed - file not stored or path is null');
-                    \Log::error('Image upload failed - file not stored', [
+                    Log::error('Image upload failed - file not stored', [
                         'image_path' => $imagePath,
                         'exists' => $imagePath ? Storage::disk('public')->exists($imagePath) : false
                     ]);
@@ -154,7 +143,7 @@ class AdminPlanningsController extends Controller
                     ], 500);
                 }
             } catch (\Exception $e) {
-                \Log::error('Image upload error: ' . $e->getMessage(), [
+                Log::error('Image upload error: ' . $e->getMessage(), [
                     'trace' => $e->getTraceAsString()
                 ]);
                 return response()->json([
@@ -173,62 +162,72 @@ class AdminPlanningsController extends Controller
                 Storage::disk('public')->delete($planning->image_path);
             }
             $updateData['image_path'] = null;
+            // Also set directly on model to ensure it's saved
+            $planning->image_path = null;
         }
 
         // Update the planning
-        error_log('=== UPDATING PLANNING ===');
-        error_log('Update Data: ' . json_encode($updateData));
-        $planning->update($updateData);
-        error_log('Update completed');
-
-        // Log the update for debugging
-        \Log::info('Planning update:', [
+        Log::info('Updating planning', [
             'planning_id' => $planning->id,
             'update_data' => $updateData,
-            'updated_image_path' => $updateData['image_path'] ?? 'not set'
         ]);
 
-        // Refresh to get updated image_path
-        $planning->refresh();
-
-        // Log after refresh
-        \Log::info('Planning after refresh:', [
-            'planning_id' => $planning->id,
-            'image_path' => $planning->image_path,
-            'image_path_raw' => $planning->getAttributes()['image_path'] ?? 'not in attributes'
-        ]);
-
-        // Reload with relationships
-        $planning = $planning->load('semester.year.speciality');
-
-        // Ensure image_path is in the response (explicitly include it)
-        $responseData = $planning->toArray();
-
-        \Log::info('Planning response data before fix:', [
-            'planning_id' => $planning->id,
-            'has_image_path' => isset($responseData['image_path']),
-            'image_path_value' => $responseData['image_path'] ?? 'missing',
-            'all_keys' => array_keys($responseData)
-        ]);
-
-        if (!isset($responseData['image_path'])) {
-            \Log::warning('image_path missing from toArray() response', [
-                'planning_id' => $planning->id,
-                'attributes' => $planning->getAttributes(),
-                'fresh_from_db' => $planning->fresh()->image_path
-            ]);
-            // Manually add it
-            $responseData['image_path'] = $planning->fresh()->image_path;
+        // Ensure image_path is saved even if updateData is empty
+        if (isset($updateData['image_path'])) {
+            $planning->image_path = $updateData['image_path'];
         }
 
-        \Log::info('Planning response data after fix:', [
+        // Update other fields if present
+        if (!empty($updateData)) {
+            $planning->fill($updateData);
+        }
+
+        // Save explicitly to ensure image_path is persisted
+        $saved = $planning->save();
+
+        Log::info('Planning saved', [
             'planning_id' => $planning->id,
-            'image_path' => $responseData['image_path']
+            'saved' => $saved,
+            'image_path' => $planning->image_path,
         ]);
 
-        error_log('=== RETURNING RESPONSE ===');
-        error_log('Response image_path: ' . ($responseData['image_path'] ?? 'NULL'));
-        error_log('Full response data keys: ' . implode(', ', array_keys($responseData)));
+        // Reload with relationships and ensure fresh data from database
+        $planning = $planning->fresh()->load('semester.year.speciality');
+
+        // Build response data explicitly to ensure image_path is included
+        $responseData = [
+            'id' => $planning->id,
+            'semester_id' => $planning->semester_id,
+            'academic_year' => $planning->academic_year,
+            'image_path' => $planning->image_path, // Explicitly include image_path
+            'is_published' => $planning->is_published,
+            'created_at' => $planning->created_at,
+            'updated_at' => $planning->updated_at,
+            'semester' => $planning->semester ? [
+                'id' => $planning->semester->id,
+                'year_id' => $planning->semester->year_id,
+                'semester_number' => $planning->semester->semester_number,
+                'name' => $planning->semester->name,
+                'academic_year' => $planning->semester->academic_year,
+                'year' => $planning->semester->year ? [
+                    'id' => $planning->semester->year->id,
+                    'speciality_id' => $planning->semester->year->speciality_id,
+                    'year_number' => $planning->semester->year->year_number,
+                    'name' => $planning->semester->year->name,
+                    'speciality' => $planning->semester->year->speciality ? [
+                        'id' => $planning->semester->year->speciality->id,
+                        'filiere_id' => $planning->semester->year->speciality->filiere_id,
+                        'name' => $planning->semester->year->speciality->name,
+                    ] : null,
+                ] : null,
+            ] : null,
+        ];
+
+        Log::info('Planning update response:', [
+            'planning_id' => $planning->id,
+            'image_path' => $responseData['image_path'],
+            'image_path_from_model' => $planning->image_path,
+        ]);
 
         return response()->json([
             'success' => true,
