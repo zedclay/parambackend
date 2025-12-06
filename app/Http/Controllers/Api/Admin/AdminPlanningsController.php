@@ -128,14 +128,33 @@ class AdminPlanningsController extends Controller
                 ]);
 
                 if ($imagePath && Storage::disk('public')->exists($imagePath)) {
-                    // Set directly on model to ensure it's saved
+                    // CRITICAL: Save image_path immediately to database to ensure it's persisted
+                    // Don't wait for the update() call - save it right away
+                    DB::table('plannings')
+                        ->where('id', $planning->id)
+                        ->update(['image_path' => $imagePath]);
+                    
+                    // Also set on model for consistency
                     $planning->image_path = $imagePath;
                     $updateData['image_path'] = $imagePath;
-                    Log::info('✅ Image path set for update', [
+                    
+                    // Verify it was saved
+                    $verifyPath = DB::table('plannings')->where('id', $planning->id)->value('image_path');
+                    
+                    Log::info('✅ Image path set and saved immediately', [
                         'image_path' => $imagePath,
                         'file_exists' => Storage::disk('public')->exists($imagePath),
-                        'file_size' => Storage::disk('public')->size($imagePath)
+                        'file_size' => Storage::disk('public')->size($imagePath),
+                        'verified_in_db' => $verifyPath,
+                        'match' => $verifyPath === $imagePath,
                     ]);
+                    
+                    if ($verifyPath !== $imagePath) {
+                        Log::error('CRITICAL: image_path was not saved to DB immediately!', [
+                            'expected' => $imagePath,
+                            'actual' => $verifyPath,
+                        ]);
+                    }
                 } else {
                     Log::error('Image upload failed - file not stored', [
                         'image_path' => $imagePath,
