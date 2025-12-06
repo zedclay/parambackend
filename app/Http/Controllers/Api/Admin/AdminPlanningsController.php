@@ -256,10 +256,22 @@ class AdminPlanningsController extends Controller
             ] : null,
         ];
 
+        // Final verification: ensure image_path is in response
+        if (isset($updateData['image_path']) && empty($responseData['image_path'])) {
+            // Force it from database if missing
+            $responseData['image_path'] = $dbImagePath ?? $planning->image_path ?? $updateData['image_path'];
+            Log::warning('image_path was missing from response, forcing it', [
+                'planning_id' => $planning->id,
+                'forced_image_path' => $responseData['image_path'],
+            ]);
+        }
+
         Log::info('Planning update response:', [
             'planning_id' => $planning->id,
-            'image_path' => $responseData['image_path'],
+            'image_path_in_response' => $responseData['image_path'],
             'image_path_from_model' => $planning->image_path,
+            'image_path_from_db' => $dbImagePath ?? 'not checked',
+            'response_keys' => array_keys($responseData),
         ]);
 
         return response()->json([
