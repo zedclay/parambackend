@@ -241,11 +241,14 @@ class AdminPlanningsController extends Controller
         $planning = $planning->load('semester.year.speciality');
 
         // Build response data explicitly to ensure image_path is included
+        // Use database value as source of truth (most reliable)
+        $responseImagePath = $dbImagePath ?? $planning->image_path ?? null;
+        
         $responseData = [
             'id' => $planning->id,
             'semester_id' => $planning->semester_id,
             'academic_year' => $planning->academic_year,
-            'image_path' => $planning->image_path, // Explicitly include image_path
+            'image_path' => $responseImagePath, // Use DB value as source of truth
             'is_published' => $planning->is_published,
             'created_at' => $planning->created_at,
             'updated_at' => $planning->updated_at,
@@ -269,20 +272,21 @@ class AdminPlanningsController extends Controller
             ] : null,
         ];
 
-        // Final verification: ensure image_path is in response
-        // Use the value from database as source of truth
+        // Final verification: ensure image_path is ALWAYS in response
+        // Use the value from database as source of truth (most reliable)
         $finalImagePath = $dbImagePath ?? $planning->image_path ?? ($updateData['image_path'] ?? null);
         
-        if (isset($updateData['image_path']) && empty($responseData['image_path'])) {
-            // Force it from database if missing
-            $responseData['image_path'] = $finalImagePath;
-            Log::warning('image_path was missing from response, forcing it', [
+        // ALWAYS set image_path in response, even if null
+        $responseData['image_path'] = $finalImagePath;
+        
+        // Log if we had to force it
+        if (isset($updateData['image_path']) && $responseData['image_path'] !== $finalImagePath) {
+            Log::warning('image_path was different, using database value', [
                 'planning_id' => $planning->id,
-                'forced_image_path' => $responseData['image_path'],
+                'original_response' => $responseData['image_path'],
+                'final_image_path' => $finalImagePath,
                 'source' => $dbImagePath ? 'database' : ($planning->image_path ? 'model' : 'updateData'),
             ]);
-        } else {
-            // Always use database value as source of truth
             $responseData['image_path'] = $finalImagePath;
         }
 
