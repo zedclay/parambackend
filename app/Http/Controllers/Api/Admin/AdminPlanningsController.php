@@ -77,9 +77,9 @@ class AdminPlanningsController extends Controller
             'all_input_keys' => array_keys($request->all()),
             'request_method' => $request->method(),
         ]);
-        
+
         $planning = Planning::findOrFail($id);
-        
+
         $validator = Validator::make($request->all(), [
             'academic_year' => 'sometimes|string',
             'is_published' => 'sometimes|boolean',
