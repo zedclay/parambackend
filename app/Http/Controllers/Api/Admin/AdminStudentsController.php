@@ -112,6 +112,11 @@ class AdminStudentsController extends Controller
             'name' => 'sometimes|string|max:255',
             'email' => 'sometimes|email|unique:users,email,' . $id,
             'is_active' => 'sometimes|boolean',
+            'year_id' => 'sometimes|nullable|exists:years,id',
+            'group_id' => 'sometimes|nullable|exists:groups,id',
+            'filiere_id' => 'sometimes|nullable|exists:filieres,id',
+            'speciality_id' => 'sometimes|nullable|exists:specialities,id',
+            'student_number' => 'sometimes|nullable|string|max:255',
         ]);
 
         if ($validator->fails()) {
@@ -125,7 +130,8 @@ class AdminStudentsController extends Controller
             ], 422);
         }
 
-        $student->update($request->only(['name', 'email', 'is_active']));
+        $updateData = $request->only(['name', 'email', 'is_active', 'year_id', 'group_id', 'filiere_id', 'speciality_id', 'student_number']);
+        $student->update($updateData);
 
         return response()->json([
             'success' => true,
