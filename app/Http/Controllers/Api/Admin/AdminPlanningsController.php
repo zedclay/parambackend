@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Planning;
 use App\Models\Semester;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Storage;
@@ -127,8 +128,14 @@ class AdminPlanningsController extends Controller
                 ]);
 
                 if ($imagePath && Storage::disk('public')->exists($imagePath)) {
+                    // Set directly on model to ensure it's saved
+                    $planning->image_path = $imagePath;
                     $updateData['image_path'] = $imagePath;
-                    Log::info('✅ Image path set for update', ['image_path' => $imagePath]);
+                    Log::info('✅ Image path set for update', [
+                        'image_path' => $imagePath,
+                        'file_exists' => Storage::disk('public')->exists($imagePath),
+                        'file_size' => Storage::disk('public')->size($imagePath)
+                    ]);
                 } else {
                     Log::error('Image upload failed - file not stored', [
                         'image_path' => $imagePath,
@@ -170,29 +177,55 @@ class AdminPlanningsController extends Controller
         Log::info('Updating planning', [
             'planning_id' => $planning->id,
             'update_data' => $updateData,
+            'has_image_path' => isset($updateData['image_path']),
+            'image_path_before_save' => $planning->image_path,
         ]);
-
-        // Ensure image_path is saved even if updateData is empty
-        if (isset($updateData['image_path'])) {
-            $planning->image_path = $updateData['image_path'];
-        }
-
-        // Update other fields if present
+        
+        // Update other fields if present (except image_path which is already set on model)
         if (!empty($updateData)) {
-            $planning->fill($updateData);
+            foreach ($updateData as $key => $value) {
+                if ($key !== 'image_path') {
+                    $planning->$key = $value;
+                }
+            }
         }
-
+        
+        // Double-check image_path is set before save
+        if (isset($updateData['image_path']) && $planning->image_path !== $updateData['image_path']) {
+            $planning->image_path = $updateData['image_path'];
+            Log::warning('image_path was not set correctly, fixing it', [
+                'expected' => $updateData['image_path'],
+                'actual' => $planning->image_path,
+            ]);
+        }
+        
         // Save explicitly to ensure image_path is persisted
         $saved = $planning->save();
-
+        
+        // Verify the save worked by checking database directly
+        $planning->refresh();
+        $dbImagePath = DB::table('plannings')->where('id', $planning->id)->value('image_path');
+        
         Log::info('Planning saved', [
             'planning_id' => $planning->id,
             'saved' => $saved,
-            'image_path' => $planning->image_path,
+            'image_path_after_save' => $planning->image_path,
+            'image_path_in_db' => $dbImagePath,
+            'match' => $planning->image_path === $dbImagePath,
         ]);
+        
+        // If image_path is still null after save, something is wrong
+        if (isset($updateData['image_path']) && empty($planning->image_path)) {
+            Log::error('CRITICAL: image_path is empty after save!', [
+                'planning_id' => $planning->id,
+                'expected_image_path' => $updateData['image_path'],
+                'actual_image_path' => $planning->image_path,
+                'db_image_path' => $dbImagePath,
+            ]);
+        }
 
         // Reload with relationships and ensure fresh data from database
-        $planning = $planning->fresh()->load('semester.year.speciality');
+        $planning = $planning->load('semester.year.speciality');
 
         // Build response data explicitly to ensure image_path is included
         $responseData = [
