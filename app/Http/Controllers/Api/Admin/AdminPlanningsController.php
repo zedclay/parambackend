@@ -290,19 +290,32 @@ class AdminPlanningsController extends Controller
             $responseData['image_path'] = $finalImagePath;
         }
 
-        Log::info('Planning update response:', [
+        // Final check: Log the exact response that will be sent
+        Log::info('Planning update response (FINAL):', [
             'planning_id' => $planning->id,
             'image_path_in_response' => $responseData['image_path'],
             'image_path_from_model' => $planning->image_path,
             'image_path_from_db' => $dbImagePath ?? 'not checked',
             'response_keys' => array_keys($responseData),
+            'response_data_image_path_exists' => isset($responseData['image_path']),
+            'response_data_image_path_not_null' => !is_null($responseData['image_path']),
+            'response_data_image_path_not_empty' => !empty($responseData['image_path']),
         ]);
 
-        return response()->json([
+        // Build final response
+        $finalResponse = [
             'success' => true,
             'data' => $responseData,
             'message' => 'Planning updated successfully.'
+        ];
+
+        // Log the exact JSON that will be sent (for debugging)
+        Log::info('Exact JSON response (first 500 chars):', [
+            'json_preview' => substr(json_encode($finalResponse), 0, 500),
+            'has_image_path' => isset($finalResponse['data']['image_path']),
         ]);
+
+        return response()->json($finalResponse);
     }
 
     public function destroy($id)
