@@ -72,7 +72,7 @@ class AdminPlanningsController extends Controller
     public function update(Request $request, $id)
     {
         $planning = Planning::findOrFail($id);
-        
+
         $validator = Validator::make($request->all(), [
             'academic_year' => 'sometimes|string',
             'is_published' => 'sometimes|boolean',
@@ -103,21 +103,41 @@ class AdminPlanningsController extends Controller
                 // Store new image
                 $file = $request->file('image');
                 $storedFilename = 'planning_' . time() . '_' . $file->hashName();
+
+                // Ensure plannings directory exists
+                Storage::disk('public')->makeDirectory('plannings');
+
                 $imagePath = $file->storeAs('plannings', $storedFilename, 'public');
-                
-                if ($imagePath) {
+
+                \Log::info('Planning image upload:', [
+                    'planning_id' => $planning->id,
+                    'original_filename' => $file->getClientOriginalName(),
+                    'stored_filename' => $storedFilename,
+                    'image_path' => $imagePath,
+                    'file_size' => $file->getSize(),
+                    'mime_type' => $file->getMimeType(),
+                    'exists' => Storage::disk('public')->exists($imagePath)
+                ]);
+
+                if ($imagePath && Storage::disk('public')->exists($imagePath)) {
                     $updateData['image_path'] = $imagePath;
                 } else {
+                    \Log::error('Image upload failed - file not stored', [
+                        'image_path' => $imagePath,
+                        'exists' => $imagePath ? Storage::disk('public')->exists($imagePath) : false
+                    ]);
                     return response()->json([
                         'success' => false,
                         'error' => [
                             'code' => 'UPLOAD_FAILED',
-                            'message' => 'Failed to store image'
+                            'message' => 'Failed to store image. Please check server logs.'
                         ]
                     ], 500);
                 }
             } catch (\Exception $e) {
-                \Log::error('Image upload error: ' . $e->getMessage());
+                \Log::error('Image upload error: ' . $e->getMessage(), [
+                    'trace' => $e->getTraceAsString()
+                ]);
                 return response()->json([
                     'success' => false,
                     'error' => [
@@ -137,7 +157,7 @@ class AdminPlanningsController extends Controller
         }
 
         $planning->update($updateData);
-        
+
         // Refresh to get updated image_path
         $planning->refresh();
 
@@ -151,14 +171,14 @@ class AdminPlanningsController extends Controller
     public function destroy($id)
     {
         $planning = Planning::findOrFail($id);
-        
+
         // Delete image if exists
         if ($planning->image_path && Storage::disk('public')->exists($planning->image_path)) {
             Storage::disk('public')->delete($planning->image_path);
         }
-        
+
         $planning->delete();
-        
+
         return response()->json([
             'success' => true,
             'message' => 'Planning deleted successfully.'
@@ -169,7 +189,7 @@ class AdminPlanningsController extends Controller
     {
         $planning = Planning::findOrFail($id);
         $planning->update(['is_published' => true]);
-        
+
         return response()->json([
             'success' => true,
             'data' => $planning->fresh(),
@@ -181,7 +201,7 @@ class AdminPlanningsController extends Controller
     {
         $planning = Planning::findOrFail($id);
         $planning->update(['is_published' => false]);
-        
+
         return response()->json([
             'success' => true,
             'data' => $planning->fresh(),
