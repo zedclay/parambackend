@@ -156,10 +156,24 @@ class AdminPlanningsController extends Controller
             $updateData['image_path'] = null;
         }
 
+        // Update the planning
         $planning->update($updateData);
+
+        // Log the update for debugging
+        \Log::info('Planning update:', [
+            'planning_id' => $planning->id,
+            'update_data' => $updateData,
+            'updated_image_path' => $updateData['image_path'] ?? 'not set'
+        ]);
 
         // Refresh to get updated image_path
         $planning->refresh();
+
+        // Log after refresh
+        \Log::info('Planning after refresh:', [
+            'planning_id' => $planning->id,
+            'image_path' => $planning->image_path
+        ]);
 
         return response()->json([
             'success' => true,
