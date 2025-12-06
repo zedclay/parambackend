@@ -188,14 +188,28 @@ class AdminPlanningsController extends Controller
 
         // Ensure image_path is in the response (explicitly include it)
         $responseData = $planning->toArray();
+        
+        \Log::info('Planning response data before fix:', [
+            'planning_id' => $planning->id,
+            'has_image_path' => isset($responseData['image_path']),
+            'image_path_value' => $responseData['image_path'] ?? 'missing',
+            'all_keys' => array_keys($responseData)
+        ]);
+        
         if (!isset($responseData['image_path'])) {
             \Log::warning('image_path missing from toArray() response', [
                 'planning_id' => $planning->id,
-                'attributes' => $planning->getAttributes()
+                'attributes' => $planning->getAttributes(),
+                'fresh_from_db' => $planning->fresh()->image_path
             ]);
             // Manually add it
-            $responseData['image_path'] = $planning->image_path;
+            $responseData['image_path'] = $planning->fresh()->image_path;
         }
+
+        \Log::info('Planning response data after fix:', [
+            'planning_id' => $planning->id,
+            'image_path' => $responseData['image_path']
+        ]);
 
         return response()->json([
             'success' => true,
