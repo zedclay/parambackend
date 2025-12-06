@@ -24,12 +24,20 @@ class AdminScheduleImagesController extends Controller
                 ->first();
 
             if (!$scheduleImage) {
+                Log::info('No schedule image found for semester', ['semester_id' => $semesterId]);
                 return response()->json([
                     'success' => true,
                     'data' => null,
                     'message' => 'No schedule image found for this semester.',
                 ]);
             }
+
+            Log::info('Schedule image found', [
+                'schedule_image_id' => $scheduleImage->id,
+                'semester_id' => $semesterId,
+                'image_path' => $scheduleImage->image_path,
+                'file_exists' => $scheduleImage->fileExists(),
+            ]);
 
             return response()->json([
                 'success' => true,
