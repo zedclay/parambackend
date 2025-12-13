@@ -47,7 +47,8 @@ return [
     |
     */
 
-    'expiration' => null,
+    // Security: Set token expiration (24 hours = 1440 minutes)
+    'expiration' => env('SANCTUM_TOKEN_EXPIRATION', 1440),
 
     /*
     |--------------------------------------------------------------------------

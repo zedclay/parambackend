@@ -18,9 +18,16 @@ return Application::configure(basePath: dirname(__DIR__))
             'student' => \App\Http\Middleware\EnsureUserIsStudent::class,
         ]);
 
-        // Enable CORS for API routes
+        // Security: Add input sanitization and rate limiting middleware for all API requests
         $middleware->api(prepend: [
             \Illuminate\Http\Middleware\HandleCors::class,
+            \App\Http\Middleware\RateLimitAPI::class,
+            \App\Http\Middleware\SanitizeInput::class,
+        ]);
+
+        // Security: Sanitize error messages in production
+        $middleware->api(append: [
+            \App\Http\Middleware\SecureErrorMessages::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

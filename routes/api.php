@@ -31,13 +31,17 @@ use App\Http\Middleware\EnsureUserIsAdmin;
 use App\Http\Middleware\EnsureUserIsStudent;
 use Illuminate\Support\Facades\Route;
 
-// Authentication routes (no auth required)
-Route::prefix('auth')->group(function () {
+// Authentication routes (no auth required) - Rate limited to prevent brute force
+Route::prefix('auth')->middleware('throttle:5,1')->group(function () {
     Route::post('/login', [AuthController::class, 'login'])->name('api.auth.login');
-    Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:sanctum');
     Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
     Route::post('/reset-password', [AuthController::class, 'resetPassword']);
-    Route::get('/me', [AuthController::class, 'me'])->middleware('auth:sanctum');
+});
+
+// Authentication routes with auth required (different rate limit)
+Route::prefix('auth')->middleware(['auth:sanctum', 'throttle:60,1'])->group(function () {
+    Route::post('/logout', [AuthController::class, 'logout']);
+    Route::get('/me', [AuthController::class, 'me']);
 });
 
 // Public routes (no auth required)

@@ -38,11 +38,23 @@ class AdminStudentsController extends Controller
 
     public function store(Request $request)
     {
+        // Security: Strong password requirements
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email',
-            'password' => 'required|string|min:8',
+            'email' => 'required|email|unique:users,email|max:255',
+            'password' => [
+                'required',
+                'string',
+                'min:8',
+                'max:128',
+                'regex:/[a-z]/',      // Must contain lowercase
+                'regex:/[A-Z]/',      // Must contain uppercase
+                'regex:/[0-9]/',      // Must contain number
+                'regex:/[@$!%*#?&]/', // Must contain special character
+            ],
             'must_change_password' => 'sometimes|boolean',
+        ], [
+            'password.regex' => 'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character.',
         ]);
 
         if ($validator->fails()) {
@@ -130,7 +142,17 @@ class AdminStudentsController extends Controller
             ], 422);
         }
 
+        // Security: Sanitize text inputs to prevent XSS
         $updateData = $request->only(['name', 'email', 'is_active', 'year_id', 'group_id', 'filiere_id', 'speciality_id', 'student_number']);
+
+        // Sanitize name and student_number fields
+        if (isset($updateData['name'])) {
+            $updateData['name'] = strip_tags(trim($updateData['name']));
+        }
+        if (isset($updateData['student_number'])) {
+            $updateData['student_number'] = strip_tags(trim($updateData['student_number']));
+        }
+
         $student->update($updateData);
 
         return response()->json([
@@ -177,9 +199,21 @@ class AdminStudentsController extends Controller
             ], 400);
         }
 
+        // Security: Strong password requirements
         $validator = Validator::make($request->all(), [
-            'password' => 'required|string|min:8',
+            'password' => [
+                'required',
+                'string',
+                'min:8',
+                'max:128',
+                'regex:/[a-z]/',      // Must contain lowercase
+                'regex:/[A-Z]/',      // Must contain uppercase
+                'regex:/[0-9]/',      // Must contain number
+                'regex:/[@$!%*#?&]/', // Must contain special character
+            ],
             'must_change_password' => 'sometimes|boolean',
+        ], [
+            'password.regex' => 'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character.',
         ]);
 
         if ($validator->fails()) {

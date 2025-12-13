@@ -243,6 +243,28 @@ class StudentNotesController extends Controller
             abort(403, 'Access denied');
         }
 
+        // Security: Validate file path to prevent directory traversal
+        $filePath = $note->file_path;
+
+        // Security: Prevent directory traversal attacks
+        if (strpos($filePath, '..') !== false || strpos($filePath, '/') === 0) {
+            abort(403, 'Invalid file path');
+        }
+
+        // Security: Ensure file path is within allowed directories
+        $allowedDirectories = ['notes', 'schedule_images'];
+        $isAllowed = false;
+        foreach ($allowedDirectories as $allowedDir) {
+            if (strpos($filePath, $allowedDir) === 0) {
+                $isAllowed = true;
+                break;
+            }
+        }
+
+        if (!$isAllowed) {
+            abort(403, 'Invalid file path');
+        }
+
         // Check if file exists and serve it
         $publicDisk = Storage::disk('public');
         $localDisk = Storage::disk('local');
@@ -250,16 +272,17 @@ class StudentNotesController extends Controller
         $file = null;
         $disk = null;
 
-        if ($publicDisk->exists($note->file_path)) {
-            $file = $publicDisk->get($note->file_path);
+        if ($publicDisk->exists($filePath)) {
+            $file = $publicDisk->get($filePath);
             $disk = $publicDisk;
-        } elseif ($localDisk->exists($note->file_path)) {
-            $file = $localDisk->get($note->file_path);
+        } elseif ($localDisk->exists($filePath)) {
+            $file = $localDisk->get($filePath);
             $disk = $localDisk;
         }
 
         if (!$file) {
-            abort(404, 'File not found: ' . $note->file_path);
+            // Security: Don't leak file path information
+            abort(404, 'File not found');
         }
 
         // Determine content disposition based on request (preview vs download)

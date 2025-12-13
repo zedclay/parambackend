@@ -24,7 +24,10 @@ class AdminScheduleImagesController extends Controller
                 ->first();
 
             if (!$scheduleImage) {
-                Log::info('No schedule image found for semester', ['semester_id' => $semesterId]);
+                // Security: Only log in debug mode
+                if (config('app.debug')) {
+                    Log::debug('No schedule image found for semester', ['semester_id' => $semesterId]);
+                }
                 return response()->json([
                     'success' => true,
                     'data' => null,
@@ -32,12 +35,14 @@ class AdminScheduleImagesController extends Controller
                 ]);
             }
 
-            Log::info('Schedule image found', [
-                'schedule_image_id' => $scheduleImage->id,
-                'semester_id' => $semesterId,
-                'image_path' => $scheduleImage->image_path,
-                'file_exists' => $scheduleImage->fileExists(),
-            ]);
+            // Security: Only log in debug mode, never log file paths in production
+            if (config('app.debug')) {
+                Log::debug('Schedule image found', [
+                    'schedule_image_id' => $scheduleImage->id,
+                    'semester_id' => $semesterId,
+                    'file_exists' => $scheduleImage->fileExists(),
+                ]);
+            }
 
             return response()->json([
                 'success' => true,
@@ -91,22 +96,64 @@ class AdminScheduleImagesController extends Controller
      */
     public function store(Request $request, $semesterId)
     {
-        $request->validate([
-            'image' => 'required|image|mimes:jpeg,jpg,png|max:10240', // Max 10MB
+        // Security: Enhanced validation with content checking
+        $validator = \Illuminate\Support\Facades\Validator::make($request->all(), [
+            'image' => [
+                'required',
+                'image',
+                'mimes:jpeg,jpg,png',
+                'max:10240', // Max 10MB
+                function ($attribute, $value, $fail) {
+                    if ($value && $value->isValid()) {
+                        // Security: Validate actual file content
+                        $finfo = finfo_open(FILEINFO_MIME_TYPE);
+                        $mimeType = finfo_file($finfo, $value->getRealPath());
+                        finfo_close($finfo);
+
+                        $allowedMimes = ['image/jpeg', 'image/jpg', 'image/png'];
+
+                        if (!in_array($mimeType, $allowedMimes)) {
+                            $fail('Invalid image file type. Only JPEG and PNG images are allowed.');
+                        }
+
+                        // Security: Verify file size
+                        if ($value->getSize() > 10485760) {
+                            $fail('Image size must not exceed 10MB.');
+                        }
+                    }
+                }
+            ],
             'semester_id' => 'required|exists:semesters,id',
         ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'error' => [
+                    'code' => 'VALIDATION_ERROR',
+                    'message' => 'Validation failed',
+                    'details' => $validator->errors(),
+                ],
+            ], 422);
+        }
 
         try {
             // Verify semester exists
             $semester = Semester::findOrFail($semesterId);
-            
+
             // Check if image already exists for this semester
             $existingImage = ScheduleImage::where('semester_id', $semesterId)->first();
 
             // Handle file upload
             $file = $request->file('image');
-            $originalFilename = $file->getClientOriginalName();
-            $storedFilename = 'schedule_' . $semesterId . '_' . time() . '.' . $file->getClientOriginalExtension();
+
+            // Security: Sanitize filename
+            $originalFilename = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
+            $originalFilename = preg_replace('/[^a-zA-Z0-9_-]/', '_', $originalFilename);
+            $originalFilename = substr($originalFilename, 0, 100);
+
+            // Security: Use secure hashed filename
+            $storedFilename = 'schedule_' . $semesterId . '_' . hash('sha256', time() . $semesterId . uniqid()) . '.' . $file->getClientOriginalExtension();
             $imagePath = $file->storeAs('schedule_images', $storedFilename, 'public');
 
             if (!$imagePath || !Storage::disk('public')->exists($imagePath)) {
@@ -154,13 +201,15 @@ class AdminScheduleImagesController extends Controller
             $scheduleImage->refresh();
             $dbImagePath = DB::table('schedule_images')->where('id', $scheduleImage->id)->value('image_path');
 
-            Log::info('Schedule image uploaded successfully', [
-                'schedule_image_id' => $scheduleImage->id,
-                'semester_id' => $semesterId,
-                'image_path' => $imagePath,
-                'verified_in_db' => $dbImagePath,
-                'match' => $dbImagePath === $imagePath,
-            ]);
+            // Security: Only log in debug mode, never log file paths
+            if (config('app.debug')) {
+                Log::debug('Schedule image uploaded successfully', [
+                    'schedule_image_id' => $scheduleImage->id,
+                    'semester_id' => $semesterId,
+                    'verified_in_db' => $dbImagePath !== null,
+                    'match' => $dbImagePath === $imagePath,
+                ]);
+            }
 
             // Load relationships
             $scheduleImage->load(['semester.year.speciality', 'uploader']);
@@ -241,10 +290,13 @@ class AdminScheduleImagesController extends Controller
             // Delete record
             $scheduleImage->delete();
 
-            Log::info('Schedule image deleted', [
-                'semester_id' => $semesterId,
-                'schedule_image_id' => $scheduleImage->id,
-            ]);
+            // Security: Only log in debug mode
+            if (config('app.debug')) {
+                Log::debug('Schedule image deleted', [
+                    'semester_id' => $semesterId,
+                    'schedule_image_id' => $scheduleImage->id,
+                ]);
+            }
 
             return response()->json([
                 'success' => true,

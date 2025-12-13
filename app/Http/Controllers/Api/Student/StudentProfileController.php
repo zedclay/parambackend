@@ -44,7 +44,12 @@ class StudentProfileController extends Controller
             ], 422);
         }
 
-        $user->update($request->only(['name', 'locale']));
+        // Security: Sanitize inputs
+        $updateData = $request->only(['name', 'locale']);
+        if (isset($updateData['name'])) {
+            $updateData['name'] = strip_tags(trim($updateData['name']));
+        }
+        $user->update($updateData);
 
         return response()->json([
             'success' => true,
@@ -55,9 +60,22 @@ class StudentProfileController extends Controller
 
     public function changePassword(Request $request)
     {
+        // Security: Strong password requirements
         $validator = Validator::make($request->all(), [
-            'current_password' => 'required|string',
-            'password' => 'required|string|min:8|confirmed',
+            'current_password' => 'required|string|max:255',
+            'password' => [
+                'required',
+                'string',
+                'min:8',
+                'max:128',
+                'confirmed',
+                'regex:/[a-z]/',      // Must contain lowercase
+                'regex:/[A-Z]/',      // Must contain uppercase
+                'regex:/[0-9]/',      // Must contain number
+                'regex:/[@$!%*#?&]/', // Must contain special character
+            ],
+        ], [
+            'password.regex' => 'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character.',
         ]);
 
         if ($validator->fails()) {

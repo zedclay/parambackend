@@ -15,19 +15,22 @@ class EnsureUserIsAdmin
      */
     public function handle(Request $request, Closure $next): Response
     {
-        \Log::info('EnsureUserIsAdmin middleware', [
-            'path' => $request->path(),
-            'method' => $request->method(),
-            'has_user' => $request->user() !== null,
-            'user_role' => $request->user()?->role,
-            'is_admin' => $request->user()?->isAdmin(),
-        ]);
+        // Security: Only log in debug mode, never log sensitive user data
+        if (config('app.debug') && config('logging.channels.single.level') === 'debug') {
+            \Log::debug('EnsureUserIsAdmin middleware check', [
+                'path' => $request->path(),
+                'method' => $request->method(),
+            ]);
+        }
 
         if (!$request->user() || !$request->user()->isAdmin()) {
-            \Log::warning('Admin access denied', [
-                'path' => $request->path(),
-                'user_id' => $request->user()?->id,
-            ]);
+            // Security: Log access denial without sensitive user info
+            if (config('app.debug')) {
+                \Log::warning('Admin access denied', [
+                    'path' => $request->path(),
+                    'ip' => $request->ip(),
+                ]);
+            }
             return response()->json([
                 'success' => false,
                 'error' => [

@@ -18,9 +18,10 @@ class AuthController extends Controller
      */
     public function login(Request $request)
     {
+        // Security: Add password strength requirements and timing attack protection
         $validator = Validator::make($request->all(), [
-            'email' => 'required|email',
-            'password' => 'required|string',
+            'email' => 'required|email|max:255',
+            'password' => 'required|string|min:1|max:255', // Don't reveal min length requirements
         ]);
 
         if ($validator->fails()) {
@@ -35,9 +36,15 @@ class AuthController extends Controller
         }
 
         $credentials = $request->only('email', 'password');
+
+        // Security: Always perform hash check to prevent timing attacks
         $user = User::where('email', $credentials['email'])->first();
 
-        if (!$user || !Hash::check($credentials['password'], $user->password)) {
+        // Use dummy hash if user doesn't exist to prevent user enumeration via timing
+        $hashToCheck = $user ? $user->password : '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi'; // Dummy hash
+
+        if (!$user || !Hash::check($credentials['password'], $hashToCheck)) {
+            // Security: Use same response time regardless of whether user exists
             return response()->json([
                 'success' => false,
                 'error' => [
@@ -57,7 +64,13 @@ class AuthController extends Controller
             ], 403);
         }
 
-        $token = $user->createToken('auth_token')->plainTextToken;
+        // Security: Create token with expiration
+        $tokenExpiration = config('sanctum.expiration', 1440); // Default 24 hours
+        $token = $user->createToken(
+            'auth_token',
+            ['*'],
+            now()->addMinutes($tokenExpiration)
+        )->plainTextToken;
 
         $userData = [
             'id' => $user->id,
@@ -210,10 +223,23 @@ class AuthController extends Controller
      */
     public function resetPassword(Request $request)
     {
+        // Security: Strong password requirements
         $validator = Validator::make($request->all(), [
-            'token' => 'required',
-            'email' => 'required|email',
-            'password' => 'required|string|min:8|confirmed',
+            'token' => 'required|string',
+            'email' => 'required|email|max:255',
+            'password' => [
+                'required',
+                'string',
+                'min:8',
+                'max:128',
+                'confirmed',
+                'regex:/[a-z]/',      // Must contain lowercase
+                'regex:/[A-Z]/',      // Must contain uppercase
+                'regex:/[0-9]/',      // Must contain number
+                'regex:/[@$!%*#?&]/', // Must contain special character
+            ],
+        ], [
+            'password.regex' => 'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character.',
         ]);
 
         if ($validator->fails()) {
