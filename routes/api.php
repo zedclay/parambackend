@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\Public\AboutController;
 use App\Http\Controllers\Api\Public\AnnouncementsController;
 use App\Http\Controllers\Api\Public\ContactController;
+use App\Http\Controllers\Api\Public\HeroSlidesController;
 use App\Http\Controllers\Api\Public\EstablishmentsController;
 use App\Http\Controllers\Api\Public\FilieresController;
 use App\Http\Controllers\Api\Public\ModulesController;
@@ -26,6 +27,7 @@ use App\Http\Controllers\Api\Admin\AdminGroupsController;
 use App\Http\Controllers\Api\Admin\AdminPlanningsController;
 use App\Http\Controllers\Api\Admin\AdminPlanningItemsController;
 use App\Http\Controllers\Api\Admin\AdminScheduleImagesController;
+use App\Http\Controllers\Api\Admin\AdminHeroSlidesController;
 use App\Http\Controllers\Api\Student\StudentScheduleController;
 use App\Http\Middleware\EnsureUserIsAdmin;
 use App\Http\Middleware\EnsureUserIsStudent;
@@ -54,6 +56,8 @@ Route::prefix('public')->group(function () {
     Route::get('/modules/{id}', [ModulesController::class, 'show']);
     Route::get('/establishments', [EstablishmentsController::class, 'index']);
     Route::get('/announcements', [AnnouncementsController::class, 'index']);
+    Route::get('/announcements/{id}', [AnnouncementsController::class, 'show']);
+    Route::get('/hero-slides', [HeroSlidesController::class, 'index']);
     Route::get('/about', [AboutController::class, 'index']);
     Route::get('/contact', [ContactController::class, 'index']);
 });
@@ -181,5 +185,11 @@ Route::prefix('admin')->middleware(['auth:sanctum', EnsureUserIsAdmin::class])->
     Route::get('/profile', [AdminProfileController::class, 'show']);
     Route::put('/profile', [AdminProfileController::class, 'update']);
     Route::put('/change-password', [AdminProfileController::class, 'changePassword']);
+
+    // Hero Slides Management
+    Route::get('/hero-slides', [AdminHeroSlidesController::class, 'index']);
+    Route::post('/hero-slides', [AdminHeroSlidesController::class, 'store']);
+    Route::put('/hero-slides/{id}', [AdminHeroSlidesController::class, 'update']);
+    Route::delete('/hero-slides/{id}', [AdminHeroSlidesController::class, 'destroy']);
 });
 
