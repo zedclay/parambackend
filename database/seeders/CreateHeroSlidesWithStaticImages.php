@@ -16,9 +16,12 @@ class CreateHeroSlidesWithStaticImages extends Seeder
         HeroSlide::where('is_active', false)->whereNull('image_path')->delete();
 
         // Create 11 slides with static image paths
-        $slides = [];
+        // This ensures all 11 slides exist in the database and can be edited via admin panel
+        $created = 0;
+        $updated = 0;
+        
         for ($i = 1; $i <= 11; $i++) {
-            $slides[] = [
+            $slideData = [
                 'title' => [
                     'fr' => 'Formation Supérieure Paramédicale d\'Excellence',
                     'ar' => 'تدريب طبي مساعد متميز',
@@ -35,16 +38,19 @@ class CreateHeroSlidesWithStaticImages extends Seeder
                 'is_active' => true,
                 'gradient' => $this->getGradientForIndex($i),
             ];
+
+            // Use updateOrCreate to ensure slide exists - update if image_path matches, create if not
+            $existing = HeroSlide::where('image_path', $slideData['image_path'])->first();
+            if ($existing) {
+                $existing->update($slideData);
+                $updated++;
+            } else {
+                HeroSlide::create($slideData);
+                $created++;
+            }
         }
 
-        foreach ($slides as $slideData) {
-            HeroSlide::updateOrCreate(
-                ['image_path' => $slideData['image_path']],
-                $slideData
-            );
-        }
-
-        $this->command->info('Created 11 hero slides with static image paths!');
+        $this->command->info("Hero slides seeded: {$created} created, {$updated} updated. Total: 11 slides ready for editing in admin panel!");
     }
 
     /**
