@@ -3,6 +3,8 @@
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\Public\AboutController;
 use App\Http\Controllers\Api\Public\AnnouncementsController;
+use App\Http\Controllers\Api\Public\DownloadsController;
+use App\Http\Controllers\Api\Public\RegulatoryTextsController;
 use App\Http\Controllers\Api\Public\ContactController;
 use App\Http\Controllers\Api\Public\HeroSlidesController;
 use App\Http\Controllers\Api\Public\EstablishmentsController;
@@ -13,6 +15,8 @@ use App\Http\Controllers\Api\Student\StudentDashboardController;
 use App\Http\Controllers\Api\Student\StudentNotesController;
 use App\Http\Controllers\Api\Student\StudentProfileController;
 use App\Http\Controllers\Api\Admin\AdminAnnouncementsController;
+use App\Http\Controllers\Api\Admin\AdminDownloadsController;
+use App\Http\Controllers\Api\Admin\AdminRegulatoryTextsController;
 use App\Http\Controllers\Api\Admin\AdminDashboardController;
 use App\Http\Controllers\Api\Admin\AdminEstablishmentsController;
 use App\Http\Controllers\Api\Admin\AdminFilieresController;
@@ -57,6 +61,10 @@ Route::prefix('public')->group(function () {
     Route::get('/establishments', [EstablishmentsController::class, 'index']);
     Route::get('/announcements', [AnnouncementsController::class, 'index']);
     Route::get('/announcements/{id}', [AnnouncementsController::class, 'show']);
+    Route::get('/downloads', [DownloadsController::class, 'index']);
+    Route::get('/downloads/{id}', [DownloadsController::class, 'show']);
+    Route::get('/regulatory-texts', [RegulatoryTextsController::class, 'index']);
+    Route::get('/regulatory-texts/{id}', [RegulatoryTextsController::class, 'show']);
     Route::get('/hero-slides', [HeroSlidesController::class, 'index']);
     Route::get('/about', [AboutController::class, 'index']);
     Route::get('/contact', [ContactController::class, 'index']);
@@ -180,6 +188,18 @@ Route::prefix('admin')->middleware(['auth:sanctum', EnsureUserIsAdmin::class])->
     Route::post('/announcements', [AdminAnnouncementsController::class, 'store']);
     Route::put('/announcements/{id}', [AdminAnnouncementsController::class, 'update']);
     Route::delete('/announcements/{id}', [AdminAnnouncementsController::class, 'destroy']);
+
+    // Downloads
+    Route::get('/downloads', [AdminDownloadsController::class, 'index']);
+    Route::post('/downloads', [AdminDownloadsController::class, 'store']);
+    Route::put('/downloads/{id}', [AdminDownloadsController::class, 'update']);
+    Route::delete('/downloads/{id}', [AdminDownloadsController::class, 'destroy']);
+
+    // Regulatory Texts
+    Route::get('/regulatory-texts', [AdminRegulatoryTextsController::class, 'index']);
+    Route::post('/regulatory-texts', [AdminRegulatoryTextsController::class, 'store']);
+    Route::put('/regulatory-texts/{id}', [AdminRegulatoryTextsController::class, 'update']);
+    Route::delete('/regulatory-texts/{id}', [AdminRegulatoryTextsController::class, 'destroy']);
 
     // Profile Management
     Route::get('/profile', [AdminProfileController::class, 'show']);
