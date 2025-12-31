@@ -27,6 +27,7 @@ class DatabaseSeeder extends Seeder
             NoteSeeder::class,
             CreatePlaceholderFiles::class,
             AnnouncementSeeder::class,
+            CreateHeroSlidesWithStaticImages::class, // Creates 11 hero slides for carousel
         ]);
     }
 }
