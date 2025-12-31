@@ -19,7 +19,7 @@ class CreateHeroSlidesWithStaticImages extends Seeder
         // This ensures all 11 slides exist in the database and can be edited via admin panel
         $created = 0;
         $updated = 0;
-        
+
         for ($i = 1; $i <= 11; $i++) {
             $slideData = [
                 'title' => [
