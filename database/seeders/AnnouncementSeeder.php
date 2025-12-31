@@ -12,7 +12,7 @@ class AnnouncementSeeder extends Seeder
     /**
      * Run the database seeds.
      *
-     * Creates sample announcements for the Institut Paramédical de Sidi Bel Abbès
+     * Creates sample announcements for the Institut national de formation superieure Paramédicale de Sidi Bel Abbès
      */
     public function run(): void
     {
@@ -27,11 +27,11 @@ class AnnouncementSeeder extends Seeder
         $announcements = [
             [
                 'title' => [
-                    'fr' => 'Bienvenue à l\'Institut Paramédical de Sidi Bel Abbès',
+                    'fr' => 'Bienvenue à l\'Institut national de formation superieure Paramédicale de Sidi Bel Abbès',
                     'ar' => 'مرحباً بكم في المعهد الوطني للتعليم العالي الطبي المساعد بسيدي بلعباس',
                 ],
                 'content' => [
-                    'fr' => 'Nous sommes ravis de vous accueillir à l\'Institut Paramédical de Sidi Bel Abbès. Notre institut est dédié à l\'excellence dans la formation paramédicale et à la préparation de professionnels compétents pour le secteur de la santé publique. Nous offrons des programmes de formation de qualité dans diverses spécialités paramédicales.',
+                    'fr' => 'Nous sommes ravis de vous accueillir à l\'Institut national de formation superieure Paramédicale de Sidi Bel Abbès. Notre institut est dédié à l\'excellence dans la formation paramédicale et à la préparation de professionnels compétents pour le secteur de la santé publique. Nous offrons des programmes de formation de qualité dans diverses spécialités paramédicales.',
                     'ar' => 'يسرنا أن نرحب بكم في المعهد الوطني للتعليم العالي الطبي المساعد بسيدي بلعباس. معهدنا مخصص للتميز في التعليم الطبي المساعد وإعداد محترفين أكفاء لقطاع الصحة العامة. نقدم برامج تدريبية عالية الجودة في مختلف التخصصات الطبية المساعدة.',
                 ],
                 'author_id' => $admin->id,
@@ -87,7 +87,7 @@ class AnnouncementSeeder extends Seeder
                     'ar' => 'يوم الأبواب المفتوحة - 20 فبراير 2025',
                 ],
                 'content' => [
-                    'fr' => 'L\'Institut Paramédical organise une journée portes ouvertes le 20 février 2025. Venez découvrir nos installations, rencontrer nos enseignants et en apprendre davantage sur nos programmes de formation. L\'événement est ouvert à tous les étudiants intéressés et leurs familles.',
+                    'fr' => 'L\'Institut national de formation superieure Paramédicale organise une journée portes ouvertes le 20 février 2025. Venez découvrir nos installations, rencontrer nos enseignants et en apprendre davantage sur nos programmes de formation. L\'événement est ouvert à tous les étudiants intéressés et leurs familles.',
                     'ar' => 'ينظم المعهد الوطني للتعليم العالي الطبي المساعد يوم أبواب مفتوحة في 20 فبراير 2025. تعالوا واكتشفوا مرافقنا، والتقوا بأساتذتنا، وتعرفوا على برامجنا التدريبية. الحدث مفتوح لجميع الطلاب المهتمين وعائلاتهم.',
                 ],
                 'author_id' => $admin->id,

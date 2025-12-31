@@ -29,8 +29,8 @@ class CreateHeroSlidesWithStaticImages extends Seeder
                     'ar' => 'جهز مستقبلك المهني في القطاع الطبي المساعد مع تدريبنا عالي الجودة',
                     'en' => 'Prepare your professional future in the paramedical sector with our quality training',
                 ],
-                'image_path' => "/images/hero/hero-{$i}.jpg", // Static file path
-                'image_filename' => "hero-{$i}.jpg",
+                'image_path' => "/images/hero/hero-{$i}.jpeg", // Static file path
+                'image_filename' => "hero-{$i}.jpeg",
                 'order' => $i - 1,
                 'is_active' => true,
                 'gradient' => $this->getGradientForIndex($i),
