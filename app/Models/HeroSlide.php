@@ -36,6 +36,12 @@ class HeroSlide extends Model
             return null;
         }
 
+        // If image_path starts with /images/, it's a static file, return as-is
+        if (str_starts_with($this->image_path, '/images/')) {
+            return $this->image_path;
+        }
+
+        // Otherwise, it's a Laravel storage path
         return Storage::disk('public')->url($this->image_path);
     }
 
