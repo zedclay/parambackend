@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Api\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\RegulatoryText;
 use App\Models\RegulatoryTextImage;
-use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Storage;
@@ -16,12 +15,6 @@ class AdminRegulatoryTextsController extends Controller
     {
         $regulatoryTexts = RegulatoryText::with(['author', 'images'])->orderBy('created_at', 'desc')->get();
         return response()->json(['success' => true, 'data' => $regulatoryTexts]);
-    }
-{
-    public function index()
-    {
-        $regulatory_texts = RegulatoryText::with(['author', 'images'])->orderBy('created_at', 'desc')->get();
-        return response()->json(['success' => true, 'data' => $regulatory_texts]);
     }
 
     public function store(Request $request)
