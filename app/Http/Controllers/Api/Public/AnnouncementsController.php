@@ -12,7 +12,7 @@ class AnnouncementsController extends Controller
     {
         $announcements = Announcement::where('is_published', true)
             ->where('published_at', '<=', now())
-            ->with('author')
+            ->with(['author', 'images'])
             ->orderBy('published_at', 'desc')
             ->limit(10)
             ->get();
@@ -28,7 +28,7 @@ class AnnouncementsController extends Controller
         $announcement = Announcement::where('id', $id)
             ->where('is_published', true)
             ->where('published_at', '<=', now())
-            ->with('author')
+            ->with(['author', 'images'])
             ->firstOrFail();
 
         return response()->json([

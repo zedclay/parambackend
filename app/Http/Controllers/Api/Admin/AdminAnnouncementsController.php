@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Announcement;
+use App\Models\AnnouncementImage;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Storage;
@@ -12,7 +13,7 @@ class AdminAnnouncementsController extends Controller
 {
     public function index()
     {
-        $announcements = Announcement::with('author')->orderBy('created_at', 'desc')->get();
+        $announcements = Announcement::with(['author', 'images'])->orderBy('created_at', 'desc')->get();
         return response()->json(['success' => true, 'data' => $announcements]);
     }
 
@@ -73,6 +74,24 @@ class AdminAnnouncementsController extends Controller
                     }
                 }
             ],
+            'images.*' => [
+                'nullable',
+                'image',
+                'mimes:jpeg,jpg,png',
+                'max:10240',
+                function ($attribute, $value, $fail) {
+                    if ($value && $value->isValid()) {
+                        $finfo = finfo_open(FILEINFO_MIME_TYPE);
+                        $mimeType = finfo_file($finfo, $value->getRealPath());
+                        finfo_close($finfo);
+
+                        $allowedMimes = ['image/jpeg', 'image/jpg', 'image/png'];
+                        if (!in_array($mimeType, $allowedMimes)) {
+                            $fail('Invalid image file type.');
+                        }
+                    }
+                }
+            ],
         ]);
 
         if ($validator->fails()) {
@@ -127,7 +146,32 @@ class AdminAnnouncementsController extends Controller
             'pdf_filename' => $pdfFilename,
         ]);
 
-        return response()->json(['success' => true, 'data' => $announcement->load('author'), 'message' => 'Announcement created successfully.'], 201);
+        // Handle multiple images upload
+        if ($request->hasFile('images')) {
+            $order = 0;
+            foreach ($request->file('images') as $image) {
+                $imageFilename = pathinfo($image->getClientOriginalName(), PATHINFO_FILENAME);
+                $imageFilename = preg_replace('/[^a-zA-Z0-9_-]/', '_', $imageFilename);
+                $imageFilename = substr($imageFilename, 0, 100);
+                $storedImageFilename = 'announcement_' . $announcement->id . '_' . time() . '_' . $order . '_' . hash('sha256', uniqid()) . '.' . $image->getClientOriginalExtension();
+                $imagePath = $image->storeAs('announcements/images', $storedImageFilename, 'public');
+
+                $finfo = finfo_open(FILEINFO_MIME_TYPE);
+                $mimeType = finfo_file($finfo, $image->getRealPath());
+                finfo_close($finfo);
+
+                AnnouncementImage::create([
+                    'announcement_id' => $announcement->id,
+                    'image_path' => $imagePath,
+                    'image_filename' => $imageFilename . '.' . $image->getClientOriginalExtension(),
+                    'mime_type' => $mimeType,
+                    'file_size' => $image->getSize(),
+                    'order' => $order++,
+                ]);
+            }
+        }
+
+        return response()->json(['success' => true, 'data' => $announcement->load(['author', 'images']), 'message' => 'Announcement created successfully.'], 201);
     }
 
     public function update(Request $request, $id)
@@ -179,6 +223,25 @@ class AdminAnnouncementsController extends Controller
             ],
             'remove_image' => 'sometimes|boolean',
             'remove_pdf' => 'sometimes|boolean',
+            'images.*' => [
+                'nullable',
+                'image',
+                'mimes:jpeg,jpg,png',
+                'max:10240',
+                function ($attribute, $value, $fail) {
+                    if ($value && $value->isValid()) {
+                        $finfo = finfo_open(FILEINFO_MIME_TYPE);
+                        $mimeType = finfo_file($finfo, $value->getRealPath());
+                        finfo_close($finfo);
+
+                        $allowedMimes = ['image/jpeg', 'image/jpg', 'image/png'];
+                        if (!in_array($mimeType, $allowedMimes)) {
+                            $fail('Invalid image file type.');
+                        }
+                    }
+                }
+            ],
+            'remove_images.*' => 'sometimes|integer', // IDs of images to remove
         ]);
 
         if ($validator->fails()) {
@@ -274,6 +337,14 @@ class AdminAnnouncementsController extends Controller
         }
         if ($announcement->pdf_path && Storage::disk('public')->exists($announcement->pdf_path)) {
             Storage::disk('public')->delete($announcement->pdf_path);
+        }
+
+        // Delete all related images
+        foreach ($announcement->images as $image) {
+            if (Storage::disk('public')->exists($image->image_path)) {
+                Storage::disk('public')->delete($image->image_path);
+            }
+            $image->delete();
         }
 
         $announcement->delete();
