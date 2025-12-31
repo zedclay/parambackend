@@ -13,8 +13,19 @@ class AdminRegulatoryTextsController extends Controller
 {
     public function index()
     {
-        $regulatoryTexts = RegulatoryText::with(['author', 'images'])->orderBy('created_at', 'desc')->get();
-        return response()->json(['success' => true, 'data' => $regulatoryTexts]);
+        try {
+            $regulatoryTexts = RegulatoryText::with(['images'])->orderBy('created_at', 'desc')->get();
+            return response()->json(['success' => true, 'data' => $regulatoryTexts]);
+        } catch (\Exception $e) {
+            \Log::error('Error fetching regulatory texts: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'error' => [
+                    'code' => 'INTERNAL_ERROR',
+                    'message' => 'Error fetching regulatory texts: ' . $e->getMessage()
+                ]
+            ], 500);
+        }
     }
 
     public function store(Request $request)
@@ -110,7 +121,7 @@ class AdminRegulatoryTextsController extends Controller
             }
         }
 
-        return response()->json(['success' => true, 'data' => $regulatory_text->load(['author', 'images']), 'message' => 'RegulatoryText created successfully.'], 201);
+        return response()->json(['success' => true, 'data' => $regulatory_text->load(['images']), 'message' => 'RegulatoryText created successfully.'], 201);
     }
 
     public function update(Request $request, $id)
