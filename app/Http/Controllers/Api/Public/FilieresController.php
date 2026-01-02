@@ -14,6 +14,15 @@ class FilieresController extends Controller
             ->orderBy('order')
             ->get();
 
+        // Log image_url for each filiere for debugging
+        foreach ($filieres as $filiere) {
+            \Log::info('Public API - Filiere image_url', [
+                'id' => $filiere->id,
+                'name' => $filiere->name['fr'] ?? 'N/A',
+                'image_url' => $filiere->image_url
+            ]);
+        }
+
         return response()->json([
             'success' => true,
             'data' => $filieres,

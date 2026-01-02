@@ -233,7 +233,7 @@ class AdminRegulatoryTextsController extends Controller
             }
         }
 
-        return response()->json(['success' => true, 'data' => $regulatory_text->fresh()->load(['author', 'images']), 'message' => 'RegulatoryText updated successfully.']);
+        return response()->json(['success' => true, 'data' => $regulatory_text->fresh()->load(['images']), 'message' => 'RegulatoryText updated successfully.']);
     }
 
     public function destroy($id)

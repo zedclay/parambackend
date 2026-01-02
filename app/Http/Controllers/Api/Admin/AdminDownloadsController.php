@@ -13,8 +13,19 @@ class AdminDownloadsController extends Controller
 {
     public function index()
     {
-        $downloads = Download::with(['author', 'images'])->orderBy('created_at', 'desc')->get();
-        return response()->json(['success' => true, 'data' => $downloads]);
+        try {
+            $downloads = Download::with(['images'])->orderBy('created_at', 'desc')->get();
+            return response()->json(['success' => true, 'data' => $downloads]);
+        } catch (\Exception $e) {
+            \Log::error('Error fetching downloads: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'error' => [
+                    'code' => 'INTERNAL_ERROR',
+                    'message' => 'Error fetching downloads: ' . $e->getMessage()
+                ]
+            ], 500);
+        }
     }
 
     public function store(Request $request)
@@ -110,7 +121,7 @@ class AdminDownloadsController extends Controller
             }
         }
 
-        return response()->json(['success' => true, 'data' => $download->load(['author', 'images']), 'message' => 'Download created successfully.'], 201);
+        return response()->json(['success' => true, 'data' => $download->load(['images']), 'message' => 'Download created successfully.'], 201);
     }
 
     public function update(Request $request, $id)
@@ -222,7 +233,7 @@ class AdminDownloadsController extends Controller
             }
         }
 
-        return response()->json(['success' => true, 'data' => $download->fresh()->load(['author', 'images']), 'message' => 'Download updated successfully.']);
+        return response()->json(['success' => true, 'data' => $download->fresh()->load(['images']), 'message' => 'Download updated successfully.']);
     }
 
     public function destroy($id)
