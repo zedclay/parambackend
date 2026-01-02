@@ -110,6 +110,8 @@ Route::prefix('admin')->middleware(['auth:sanctum', EnsureUserIsAdmin::class])->
     // Content Management - Filieres
     Route::get('/filieres', [AdminFilieresController::class, 'index']);
     Route::post('/filieres', [AdminFilieresController::class, 'store']);
+    // More specific route must come before general {id} route
+    Route::post('/filieres/{id}/image', [AdminFilieresController::class, 'updateImage']);
     Route::put('/filieres/{id}', [AdminFilieresController::class, 'update']);
     Route::delete('/filieres/{id}', [AdminFilieresController::class, 'destroy']);
 
